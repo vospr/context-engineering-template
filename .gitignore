@@ -1,0 +1,56 @@
+# Secrets and Credentials
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+credentials.json
+credentials.yaml
+credentials.yml
+secrets/
+auth.json
+
+# IDE and Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Dependencies
+node_modules/
+venv/
+.venv/
+env/
+__pycache__/
+*.pyc
+target/
+build/
+dist/
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Test Coverage
+coverage/
+.nyc_output/
+htmlcov/
+.coverage
+
+# Temporary
+tmp/
+temp/
+*.tmp
+*.bak
+
+# Claude Code session files (regenerated each session)
+planning-artifacts/session-context.md
+planning-artifacts/mcp-health.md
+
+# User-specific settings
+.claude/settings.local.json
