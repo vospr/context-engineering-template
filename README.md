@@ -205,7 +205,7 @@ How project state is persisted outside the context window — `planning-artifact
 - **Dual state architecture: Tasks for flow, Files for memory** — `.claude/agents/planner.md:4` + `CLAUDE.md:69-85`
 - **Decisions written to files immediately** — `CLAUDE.md:8,111-113` (Principle 3)
 - **Git micro-commits as checkpoints** — `.claude/skills/git-workflow.md:34-41`
-- **Branch isolation — agents never work on main** — `CLAUDE.md:122`
+- **Branch isolation — agents never work on main** — `CLAUDE.md:121`
 
 ### Context Retrieval: Read Current State Each Cycle
 
@@ -261,7 +261,7 @@ How the template prevents bugs and maintains standards — reviewer protocol, ma
 - **MCP health check at session start** — `CLAUDE.md:129-131`
 - **ARCHITECTURE_IMPACT flag triggers DAG rebuild** — `CLAUDE.md:43`
 - **Secret leak defense: .gitignore + agent rules + hooks** — `.gitignore:1-11` + `.claude/settings.json:3-12`
-- **Task DAG blocks dependents until completion verified** — `CLAUDE.md:15,18`
+- **Task DAG blocks dependents until completion verified** — `CLAUDE.md:15,19`
 
 ### Context Orchestration: Stateless Dispatcher Loop
 
