@@ -144,6 +144,104 @@ One universal dispatch pattern governs every project stage: read → match agent
 ### 6. Context Governance
 Reviewers follow a structured protocol: STATUS codes, numbered issues with severity ratings, and specific fix guidance for every finding. Circuit breaker caps worker-reviewer iterations at three cycles. Secret leak prevention operates in three layers: file exclusion, agent constraints, and automated hooks.
 
+## Idea Organization and Prioritization
+
+The template was designed through a comprehensive brainstorming session using three techniques (First Principles Thinking, Morphological Analysis, Chaos Engineering), producing 50 design contexts organized into six context engineering themes.
+
+### Context Offloading: File System as Externalized Memory
+
+How project state is persisted outside the context window — `planning-artifacts/`, `implementation-artifacts/`, decisions log; Git = recoverable lineage
+
+- **Structured status as markdown at known paths** — `CLAUDE.md:69-85` (Folder Conventions)
+- **Git branch per feature for lineage** — `CLAUDE.md:120-125` (Git Workflow section)
+- **Two-phase artifacts: planning → implementation** — `CLAUDE.md:70-71`
+- **Dual state architecture: Tasks for flow, Files for memory** — `.claude/agents/planner.md:4` + `CLAUDE.md:69-85`
+- **Decisions written to files immediately** — `CLAUDE.md:8,111-113` (Principle 3)
+- **Git micro-commits as checkpoints** — `.claude/skills/git-workflow.md:34-41`
+- **Branch isolation — agents never work on main** — `CLAUDE.md:122`
+
+### Context Retrieval: Read Current State Each Cycle
+
+How the Main Agent loads exactly what it needs — TaskList + latest artifacts; load "skills" modules on demand
+
+- **Stateless Dispatcher** — `CLAUDE.md:6` (Principle 1: "Stateless")
+- **Minimal Read Window** — `CLAUDE.md:14-16` (latest + next step only)
+- **Current state for routing, git for time-travel** — `CLAUDE.md:14-16`
+- **Task DAG for routing and dependencies** — `.claude/agents/planner.md:1-69` (entire agent dedicated to DAG)
+- **Graduated context loading via setting_sources + skills** — `.claude/agents/_agent-template.md:6-7`
+- **Skills as reusable externalized knowledge modules** — `.claude/skills/git-workflow.md:1-57` (universal)
+- **Full resumability from cold start** — `CLAUDE.md:6,127-134` (Session Initialization)
+- **Self-discovering agent pool** — `CLAUDE.md:22-29` (reads .claude/agents/ directory)
+
+### Context Reduction: Token Budget + Compaction
+
+How the template stays within 128k tokens — proactive compaction at ~80k; summarize older turns → session-context.md
+
+- **North Star: ship simple app in one 128k window** — `CLAUDE.md:9` (Principle 4)
+- **Compaction at 80k: summarize oldest 20 turns → JSON, keep last 3 raw** — `CLAUDE.md:45-47,107-109`
+- **Proactive compaction every 5 tasks** — `CLAUDE.md:45-47`
+- **CLAUDE.md max 200 lines — kernel must be small** — `CLAUDE.md:136-141`
+- **Complexity classification for model selection** — `CLAUDE.md:31-34` (Step 4)
+- **Task decomposition rule: 3-5 files max per task** — `.claude/agents/planner.md:26-30`
+- **Default sonnet, escalate to opus only when needed** — `CLAUDE.md:115-118`
+
+### Context Isolation: Specialized Subagents + Parallel Execution
+
+How work is compartmentalized — specialized subagents with dedicated context; parallel fan-out on non-overlapping files; feature branch isolation
+
+- **Delegated Mechanism Selection** — subagents choose tools/model — `.claude/agents/_agent-template.md:4-8`
+- **Embedded CTO** — only 6 agents, no separate technical agent — `.claude/agents/` (researcher, planner, architect, implementer, reviewer, tester)
+- **Worker-Reviewer autonomous quality loop** — `CLAUDE.md:54-59` (Pattern 2)
+- **Multi-Perspective Final Review** — `CLAUDE.md:61-65` (Pattern 3: Parallel Fan-Out)
+- **Custom agents in .claude/agents/ with YAML frontmatter** — `.claude/agents/_agent-template.md:1-9`
+- **Agent Teams for worker-reviewer iteration** — `CLAUDE.md:54-59` (worker-reviewer dispatch)
+- **Model heuristic: haiku/sonnet/opus by role and complexity** — `CLAUDE.md:31-34`
+- **Three communication primitives** — `CLAUDE.md:49-65` (one-shot, team, fan-out)
+- **Dependency analysis prevents parallel file conflicts** — `.claude/agents/planner.md:20-23`
+- **Agent template with mandatory convention sections** — `.claude/agents/_agent-template.md:1-34`
+- **Description-based matching scales to any pool size** — `CLAUDE.md:22-29`
+
+### Context Governance: Quality Gates + Security Controls
+
+How the template prevents bugs and maintains standards — reviewer protocol, max 3 review cycles; secret-leak prevention hooks
+
+- **Hooks (PreToolUse/PostToolUse) as automated quality gates** — `.claude/settings.json:2-14`
+- **Circuit breaker: max 3 review cycles → blocked status** — `CLAUDE.md:58-59,96-97`
+- **Structured feedback protocol: STATUS/ISSUES/SEVERITY/FIX_GUIDANCE** — `CLAUDE.md:89-93` + `.claude/agents/reviewer.md:23-49`
+- **MCP fallback chain: MCP → CLI → built-in → report blocked** — `CLAUDE.md:131`
+- **MCP 30-second timeout, max 1 retry** — `CLAUDE.md:129`
+- **MCP failure invisible to Main Agent (isolation)** — `CLAUDE.md:130-131`
+- **MCP health check at session start** — `CLAUDE.md:129-131`
+- **ARCHITECTURE_IMPACT flag triggers DAG rebuild** — `CLAUDE.md:43`
+- **Secret leak defense: .gitignore + agent rules + hooks** — `.gitignore:1-11` + `.claude/settings.json:3-12`
+- **Task DAG blocks dependents until completion verified** — `CLAUDE.md:15,18`
+
+### Context Orchestration: Stateless Dispatcher Loop
+
+How the Main Agent coordinates all work — read → match agent → dispatch → read result; complexity → model choice
+
+- **Main Agent dispatches ALL stages to subagents** — `CLAUDE.md:7` (Principle 2)
+- **Template = instruction patterns, not code** — `README.md:7` (encodes Context Engineering)
+- **User as ultimate orchestrator** — `CLAUDE.md:19-20`
+- **One Universal Dispatch Pattern across all stages** — `CLAUDE.md:12-47`
+- **Two-level split: Main Agent rules vs Subagent rules** — `CLAUDE.md:1-141` + `.claude/agents/*.md`
+- **Template = CLAUDE.md + .claude/agents/ + .claude/skills/ + folder convention** — `README.md:91-114`
+- **Skills as configurable templates with placeholders** — `README.md:22-28` + `.claude/skills/`
+
+## Implementation Priority
+
+| Priority | Deliverable | Size | Key Principles |
+|----------|-------------|------|-----------------|
+| 1 | CLAUDE.md — Main Agent dispatch rules | ~141 lines | Orchestration, Retrieval, Reduction |
+| 2 | .claude/agents/ — 6 agent definitions | ~50-80 lines each | Isolation, Retrieval, Governance |
+| 3 | .claude/skills/ — 5 knowledge modules | ~30-50 lines each | Retrieval, Orchestration |
+| 4 | _agent-template.md — convention template | ~34 lines | Isolation |
+| 5 | .claude/settings.json — Hooks & MCP | ~15 lines | Governance |
+| 6 | .gitignore — Security defaults | ~57 lines | Governance, Offloading |
+| 7 | README.md — Setup & architecture | ~184 lines | Orchestration (all themes) |
+
+**Breakthrough Concept:** The Main Agent's entire instruction set is ONE universal loop — read TaskList → match agent → dispatch → read result → update status → repeat. This makes CLAUDE.md tiny, stable, and KV-cache-friendly.
+
 ## Architectural Decisions Stress-Tested
 
 The template was designed through three brainstorming techniques:
@@ -162,6 +260,11 @@ Key resilience patterns:
 | MCP server failures | Fallback chain: MCP → CLI → built-in → report blocked |
 | Session death mid-project | Stateless dispatch + files = full resumability |
 | Secret leaks | Three-layer defense: .gitignore + agent rules + hooks |
+| Subagent context overflow | Task decomposition: 3-5 files max per task |
+| Partial work lost on crash | Git micro-commits as checkpoints |
+| Task DAG becomes stale | ARCHITECTURE_IMPACT flag triggers replanning |
+| Human-agent race condition | Branch isolation — agents never work on main |
+| Cost runaway (opus overuse) | Default sonnet, escalate to opus only when needed |
 
 ## Why This Matters
 
