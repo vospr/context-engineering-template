@@ -14,24 +14,71 @@ This template encodes **Context Engineering** — the discipline of controlling 
 
 ## Quick Start
 
-### 1. Copy template files to your project
+### Prerequisites
+- Git installed
+- Claude Code CLI installed
+
+### 1. Clone or download template files
+
+**Option A: Using degit (recommended - fastest, cross-platform)**
 ```bash
-cp -r CLAUDE.md .claude/ .gitignore your-project/
+npx degit vospr/context-engineering-template my-project
+cd my-project
+git init
 ```
 
-### 2. Customize placeholder skills
-Edit the `[PLACEHOLDER]` files in `.claude/skills/` for your stack:
-- `coding-standards.md` — your language, framework, linter, patterns
-- `review-checklist.md` — your test/lint commands, quality bar
-- `testing-strategy.md` — your test framework, commands, coverage targets
-- `architecture-principles.md` — your system type, constraints, design principles
+**Option B: Using git clone**
+```bash
+git clone https://github.com/vospr/context-engineering-template.git my-project
+cd my-project
+rm -rf .git  # Remove template git history
+git init     # Start fresh repository
+```
+
+**Option C: Manual download**
+1. Download repository as ZIP from GitHub
+2. Extract to your project directory
+3. Keep: `CLAUDE.md`, `.claude/` folder, `.gitignore`
+
+### 2. Customize placeholder skills (Required)
+
+Four files in `.claude/skills/` are marked `[PLACEHOLDER]` and **must be customized**:
+
+```bash
+.claude/skills/coding-standards.md        # Your language, linter, patterns
+.claude/skills/review-checklist.md        # Your test commands, quality bar
+.claude/skills/testing-strategy.md        # Your test framework, coverage
+.claude/skills/architecture-principles.md # Your system constraints, design
+```
 
 `git-workflow.md` is universal and works as-is.
 
-### 3. Start Claude Code
+**Quick validation**:
+```bash
+# Should return no results if customization is complete
+grep -r "\[PLACEHOLDER\]" .claude/skills/
+```
+
+**Example stacks** (customize skills for):
+- Python/Django, Node.js/Express, React/TypeScript, Go microservices, etc.
+
+### 3. Verify structure
+```bash
+# Should show CLAUDE.md and .claude/
+ls -la
+
+# Should list 7 files (6 agents + template)
+ls .claude/agents/
+
+# Should list 5 files
+ls .claude/skills/
+```
+
+### 4. Start Claude Code
 ```bash
 claude
 ```
+
 The Main Agent reads CLAUDE.md automatically and begins the dispatch loop.
 
 ## Architecture
