@@ -67,10 +67,10 @@ grep -r "\[PLACEHOLDER\]" .claude/skills/
 # Should show CLAUDE.md and .claude/
 ls -la
 
-# Should list 7 files (6 agents + template)
+# Should list 8 files (6 agents + template + CLAUDE.md index)
 ls .claude/agents/
 
-# Should list 5 files
+# Should list 7 files (6 skills + CLAUDE.md index)
 ls .claude/skills/
 ```
 
@@ -131,6 +131,18 @@ The Main Agent reads CLAUDE.md automatically and begins the dispatch loop.
 - All decisions written to files immediately (survive compaction)
 - Model economics: sonnet default, opus for architecture only, haiku for research
 
+### Token Usage Optimization via RAG
+
+The template uses a multi-layer RAG (Retrieval-Augmented Generation) strategy that reduces research token consumption by **60-80%**. The researcher agent follows a local-first priority chain:
+
+1. **Research artifact reuse** — Grep existing reports (<7 days old) before any web call
+2. **Knowledge base** — Check curated topic files in `planning-artifacts/knowledge-base/`
+3. **Context7 MCP** — Query library and framework documentation via `resolve-library-id` + `get-library-docs`
+4. **Tavily MCP** — RAG-optimized web search with pre-summarized results (see `.claude/skills/tavily-setup.md`)
+5. **WebSearch + WebFetch** — Raw fallback only when all other sources are insufficient
+
+Directory index files (`CLAUDE.md`) in key folders provide lightweight semantic maps so agents understand project structure without scanning all files (~200 tokens vs ~5000+).
+
 ## Adding Agents
 
 Drop a new `.md` file in `.claude/agents/` following `_agent-template.md`. The Main Agent discovers agents by reading the directory — no configuration changes needed.
@@ -138,18 +150,21 @@ Drop a new `.md` file in `.claude/agents/` following `_agent-template.md`. The M
 ## Project Structure
 
 ```
-CLAUDE.md                              # Main Agent dispatch kernel (~150 lines)
+CLAUDE.md                              # Main Agent dispatch kernel (~141 lines)
 .claude/
   agents/                              # Subagent definitions
+    CLAUDE.md                          # Directory index (agent inventory)
     _agent-template.md                 # Convention template
-    researcher.md                      # Web research (haiku)
+    researcher.md                      # Local-first RAG + web research (haiku)
     planner.md                         # Task DAG creation (sonnet)
     architect.md                       # System design (opus)
     implementer.md                     # Code writing (sonnet)
     reviewer.md                        # Code review (sonnet, read-only)
     tester.md                          # Test execution (sonnet)
   skills/                              # Reusable knowledge modules
+    CLAUDE.md                          # Directory index (skill inventory)
     git-workflow.md                    # Universal git conventions
+    tavily-setup.md                    # Tavily MCP setup for RAG-optimized search
     coding-standards.md                # [PLACEHOLDER] language/framework
     review-checklist.md                # [PLACEHOLDER] review criteria
     testing-strategy.md                # [PLACEHOLDER] test framework
@@ -157,6 +172,10 @@ CLAUDE.md                              # Main Agent dispatch kernel (~150 lines)
   settings.json                        # Hooks for secret detection
 .gitignore                             # Security defaults
 planning-artifacts/                    # Created at runtime
+  CLAUDE.md                            # Directory index (artifact types)
+  knowledge-base/                      # Persistent RAG cache (version-controlled)
+    README.md                          # Knowledge base guidelines
+    rag-sources.md                     # RAG layer reference doc
 implementation-artifacts/              # Created at runtime
 ```
 
@@ -199,17 +218,19 @@ The template was designed through a comprehensive brainstorming session using th
 
 How project state is persisted outside the context window — `planning-artifacts/`, `implementation-artifacts/`, decisions log; Git = recoverable lineage
 
-- **Structured status as markdown at known paths** — `CLAUDE.md:69-85` (Folder Conventions)
+- **Structured status as markdown at known paths** — `CLAUDE.md:67-85` (Folder Conventions)
 - **Git branch per feature for lineage** — `CLAUDE.md:120-125` (Git Workflow section)
-- **Two-phase artifacts: planning → implementation** — `CLAUDE.md:70-71`
-- **Dual state architecture: Tasks for flow, Files for memory** — `.claude/agents/planner.md:4` + `CLAUDE.md:69-85`
+- **Two-phase artifacts: planning → implementation** — `CLAUDE.md:69-70`
+- **Dual state architecture: Tasks for flow, Files for memory** — `.claude/agents/planner.md:4` + `CLAUDE.md:67-85`
 - **Decisions written to files immediately** — `CLAUDE.md:8,111-113` (Principle 3)
 - **Git micro-commits as checkpoints** — `.claude/skills/git-workflow.md:34-41`
 - **Branch isolation — agents never work on main** — `CLAUDE.md:121`
+- **Knowledge base as persistent RAG cache** — `planning-artifacts/knowledge-base/` (version-controlled, survives sessions)
+- **Directory CLAUDE.md indexes as semantic maps** — `.claude/agents/CLAUDE.md`, `.claude/skills/CLAUDE.md`, `planning-artifacts/CLAUDE.md`
 
 ### Context Retrieval: Read Current State Each Cycle
 
-How the Main Agent loads exactly what it needs — TaskList + latest artifacts; load "skills" modules on demand
+How the Main Agent loads exactly what it needs — TaskList + latest artifacts; load "skills" modules on demand; multi-layer RAG for research
 
 - **Stateless Dispatcher** — `CLAUDE.md:6` (Principle 1: "Stateless")
 - **Minimal Read Window** — `CLAUDE.md:14-16` (latest + next step only)
@@ -219,10 +240,13 @@ How the Main Agent loads exactly what it needs — TaskList + latest artifacts; 
 - **Skills as reusable externalized knowledge modules** — `.claude/skills/git-workflow.md:1-57` (universal)
 - **Full resumability from cold start** — `CLAUDE.md:6,127-134` (Session Initialization)
 - **Self-discovering agent pool** — `CLAUDE.md:22-29` (reads .claude/agents/ directory)
+- **Local-first RAG priority chain** — `.claude/agents/researcher.md:21-41` (artifacts → knowledge-base → Context7 → Tavily → web)
+- **Context7 MCP for library docs** — `.claude/agents/researcher.md:4,33-37` (resolve-library-id + get-library-docs)
+- **Research artifact reuse (<7 days)** — `.claude/agents/researcher.md:25-27` (temporal RAG cache)
 
-### Context Reduction: Token Budget + Compaction
+### Context Reduction: Token Budget + Compaction + RAG
 
-How the template stays within 128k tokens — proactive compaction at ~80k; summarize older turns → session-context.md
+How the template stays within 128k tokens — proactive compaction at ~80k; summarize older turns → session-context.md; multi-layer RAG reduces research tokens by 60-80%
 
 - **North Star: ship simple app in one 128k window** — `CLAUDE.md:9` (Principle 4)
 - **Compaction at 80k: summarize oldest 20 turns → JSON, keep last 3 raw** — `CLAUDE.md:45-47,107-109`
@@ -231,6 +255,9 @@ How the template stays within 128k tokens — proactive compaction at ~80k; summ
 - **Complexity classification for model selection** — `CLAUDE.md:31-34` (Step 4)
 - **Task decomposition rule: 3-5 files max per task** — `.claude/agents/planner.md:26-30`
 - **Default sonnet, escalate to opus only when needed** — `CLAUDE.md:115-118`
+- **Multi-layer RAG reduces research tokens 60-80%** — `.claude/agents/researcher.md:21-45` (local-first priority chain)
+- **Directory indexes (~200 tokens) replace full directory scans (~5000+ tokens)** — `.claude/agents/CLAUDE.md`, `.claude/skills/CLAUDE.md`, `planning-artifacts/CLAUDE.md`
+- **Tavily MCP returns pre-summarized results** — `.claude/skills/tavily-setup.md` (RAG-optimized vs raw WebFetch)
 
 ### Context Isolation: Specialized Subagents + Parallel Execution
 
@@ -280,12 +307,13 @@ How the Main Agent coordinates all work — read → match agent → dispatch �
 | Priority | Deliverable | Size | Key Principles |
 |----------|-------------|------|-----------------|
 | 1 | CLAUDE.md — Main Agent dispatch rules | ~141 lines | Orchestration, Retrieval, Reduction |
-| 2 | .claude/agents/ — 6 agent definitions | ~50-80 lines each | Isolation, Retrieval, Governance |
-| 3 | .claude/skills/ — 5 knowledge modules | ~30-50 lines each | Retrieval, Orchestration |
+| 2 | .claude/agents/ — 6 agent definitions + index | ~50-82 lines each | Isolation, Retrieval, Governance |
+| 3 | .claude/skills/ — 6 knowledge modules + index | ~30-61 lines each | Retrieval, Orchestration, Reduction |
 | 4 | _agent-template.md — convention template | ~34 lines | Isolation |
-| 5 | .claude/settings.json — Hooks & MCP | ~15 lines | Governance |
-| 6 | .gitignore — Security defaults | ~57 lines | Governance, Offloading |
-| 7 | README.md — Setup & architecture | ~184 lines | Orchestration (all themes) |
+| 5 | planning-artifacts/knowledge-base/ — RAG cache | persistent | Retrieval, Reduction |
+| 6 | .claude/settings.json — Hooks & MCP | ~15 lines | Governance |
+| 7 | .gitignore — Security defaults | ~60 lines | Governance, Offloading |
+| 8 | README.md — Setup & architecture | this file | Orchestration (all themes) |
 
 **Breakthrough Concept:** The Main Agent's entire instruction set is ONE universal loop — read TaskList → match agent → dispatch → read result → update status → repeat. This makes CLAUDE.md tiny, stable, and KV-cache-friendly.
 
@@ -312,6 +340,7 @@ Key resilience patterns:
 | Task DAG becomes stale | ARCHITECTURE_IMPACT flag triggers replanning |
 | Human-agent race condition | Branch isolation — agents never work on main |
 | Cost runaway (opus overuse) | Default sonnet, escalate to opus only when needed |
+| Research token waste | Local-first RAG: artifacts → knowledge-base → Context7 → Tavily → web |
 
 ## Why This Matters
 
