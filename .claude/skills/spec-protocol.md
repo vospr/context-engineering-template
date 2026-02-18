@@ -767,6 +767,8 @@ Each entry MUST contain these fields in this exact order:
 | `tasks` | array of strings | TaskList task IDs in T-{NNN} format (Section 9) |
 | `verified` | boolean | True only when ALL task assertions pass |
 
+> **Slice applicability:** Slice 1 implementations MUST use only DRAFT | ACTIVE | DONE for the `phase` field. Extended states (LINT_PASS, RATIFIED, EXECUTING, VERIFIED, GRADUATED) are available only when Slice 3 governance is active. Agents MUST NOT use Slice 3 phase values unless `constitution.md` exists in `planning-artifacts/`.
+
 ### Complete File Example
 
 ```json
@@ -1055,6 +1057,8 @@ Section 10's 3-state model remains valid for Slice 1/2 projects. The mapping:
 | DONE | VERIFIED or GRADUATED |
 
 Projects without Slice 3 governance continue using 3 states. The expanded lifecycle activates when Section 14 (Two-Layer Verification) is in effect.
+
+> **Activation requirement:** The 6-state lifecycle (DRAFT → LINT_PASS → RATIFIED → EXECUTING → VERIFIED → GRADUATED) activates ONLY when `planning-artifacts/constitution.md` exists. Without it, use Slice 1 states: DRAFT → ACTIVE → DONE.
 
 ### Graduated Escalation Protocol
 

@@ -60,6 +60,7 @@ Requirements:
 5. Create or update planning-artifacts/feature-tracker.json with this feature's state.
 6. Work autonomously — no follow-up interaction.
 7. Keep scope minimal: one GET /health endpoint returning {"status":"ok"} with a timestamp.
+8. Use Slice 1 lifecycle states (DRAFT/ACTIVE/DONE) for the feature tracker phase field — do NOT use Slice 3 extended states.
 
 Deliverables:
 - Spec packet(s) with assertions

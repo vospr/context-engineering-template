@@ -33,24 +33,38 @@ Added project condition: when Scenario D successfully executes, README.md is upd
 
 | Step | Agent | Model | Purpose | Est. Tokens |
 |------|-------|-------|---------|-------------|
-| 1 | Main Agent | sonnet | Read state, classify complexity, init dispatch | ~2,000 |
-| 2 | Planner | sonnet | Tier classification (SIMPLE), author spec packet with YAML assertions, create feature-tracker.json | ~8,000–12,000 |
-| 3 | Implementer | sonnet | Scaffold Node.js project (package.json, express, jest), create src/app.js, src/routes/health.js, src/server.js, write tests | ~15,000–25,000 |
-| 4 | Implementer | sonnet | npm install, run tests, collect assertion evidence, write implementation artifact | ~8,000–12,000 |
-| 5 | Tester/Reviewer | sonnet | Verify assertions independently, validate spec compliance, evidence report | ~5,000–8,000 |
-| 6 | Main Agent | sonnet | Update feature-tracker.json, write final summary, git commit | ~3,000–5,000 |
-| **Total** | | | | **~41,000–64,000** |
+| 1 | Main Agent | sonnet | Read state, classify COMPLEX, init dispatch | ~2,000 |
+| 2 | Architect | opus | Pre-check: ADR for Express/Jest/supertest stack | ~5,000–8,000 |
+| 3 | Planner | sonnet | Full spec suite: 4 tasks (26 assertions), overview, plan, feature tracker | ~10,000–15,000 |
+| 4 | Implementer | sonnet | T-1: Scaffold Node.js project, npm install | ~8,000–12,000 |
+| 5 | Implementer + Reviewer | sonnet | T-2: Implement GET /health endpoint, worker-reviewer cycle | ~12,000–18,000 |
+| 6 | Implementer + Reviewer | sonnet | T-3: Write Jest+supertest tests, worker-reviewer cycle | ~10,000–15,000 |
+| 7 | Tester | sonnet | T-4: Validate feature, smoke test, evidence report | ~8,000–12,000 |
+| 8 | Main Agent | sonnet | Update feature tracker to DONE, git commits | ~3,000–5,000 |
+| **Total** | | | | **~58,000–87,000** |
 
 ## Expected Tier Classification
 
-- **Tier: SIMPLE** — Single endpoint, clear requirements, ≤3 files, no architectural decisions needed
-- Rationale: GET /health returning static JSON is below MODERATE threshold (no cross-cutting concerns, no data layer, no auth)
-- Routing: Planner writes minimal spec packet inline in task description; no full spec overview document needed
+- **Tier: COMPLEX** — Greenfield scaffold, multi-component, high coupling; establishes framework, test stack, and architectural patterns
+- Rationale: Node.js project initialization with Express, Jest, and supertest crosses the COMPLEX threshold: 5+ files, new architectural patterns, high coupling between test stack and application framework, and no prior codebase to build on
+- Routing: COMPLEX → architect pre-check + planner writes full spec suite + overview
 
-## Expected Spec Packet
+## Expected Spec Packets
+
+Four spec packets are expected across 4 tasks (26 total assertions: 7+7+6+6).
+
+**T-1: Scaffold Node.js project** (7 assertions — package.json, Express/Jest/supertest installation, app/server split, directory structure, .gitignore, README, git init)
+
+**T-2: Implement GET /health endpoint** (7 assertions — HTTP 200, Content-Type application/json, status field, timestamp ISO 8601, PORT env var, app/server split pattern, error handling)
+
+**T-3: Write Jest+supertest tests** (6 assertions — test file exists, supertest import, GET /health test, status:ok assertion, timestamp format assertion, all tests pass)
+
+**T-4: Validate feature end-to-end** (6 assertions — server starts, endpoint reachable, JSON parseable, smoke test passes, feature-tracker.json updated to DONE, evidence report complete)
+
+**Representative packet (T-2):**
 
 ```yaml
---- SPEC ---
+# --- SPEC ---
 version: 1
 intent: "Implement GET /health endpoint returning JSON status with timestamp"
 assertions:
@@ -67,29 +81,37 @@ assertions:
     positive: "Server MUST listen on PORT environment variable with fallback to 3000"
     negative: "Server MUST NOT hard-code port number without env override"
 constraints:
-  - "Express.js framework"
-  - "Jest + supertest for testing"
-  - "App/server split pattern (app exports without listen)"
+  - "MUST use Express.js framework"
+  - "MUST use app/server split pattern (app.js exports without listen)"
+  - "MUST NOT hard-code port"
 file_scope:
   - src/app.js
   - src/routes/health.js
   - src/server.js
-  - tests/health.test.js
-  - package.json
---- END SPEC ---
+# --- END SPEC ---
 ```
 
 ## Expected Artifacts Created
 
+Approximately 15 artifacts are produced in a successful run.
+
 | Artifact | Path | Purpose |
 |----------|------|---------|
-| Spec packet | Embedded in TaskList task description | SDD spec with assertions |
-| Feature tracker | planning-artifacts/feature-tracker.json | Feature lifecycle state |
+| ADR | planning-artifacts/YYYY-MM-DD-adr-express-jest-supertest.md | Architect pre-check decision record |
+| Spec overview | planning-artifacts/spec-F-001-health-check-overview.md | Feature-level spec summary (COMPLEX tier) |
+| Feature tracker | planning-artifacts/feature-tracker.json | Feature lifecycle state (phase: DONE on completion) |
+| Plan | planning-artifacts/YYYY-MM-DD-plan-health-check.md | Task breakdown and dependencies |
+| Decisions log | planning-artifacts/decisions.md | Technology decisions (Express, Jest, supertest) |
+| Spec packets (x4) | Embedded in TaskList task descriptions T-1 through T-4 | SDD specs with 26 total assertions |
 | Implementation code | src/app.js, src/routes/health.js, src/server.js | Health check endpoint |
-| Tests | tests/health.test.js | Assertion verification |
+| Tests | tests/health.test.js | Jest+supertest assertion verification |
 | Package config | package.json, package-lock.json | Dependencies |
-| Evidence report | implementation-artifacts/2026-MM-DD-impl-T-{id}.md | Per-assertion PASS/FAIL evidence |
-| Implementation artifact | implementation-artifacts/2026-MM-DD-impl-T-{id}.md | Implementation notes |
+| Impl artifact T-1 | implementation-artifacts/YYYY-MM-DD-impl-T-1.md | Scaffold notes + evidence |
+| Impl artifact T-2 | implementation-artifacts/YYYY-MM-DD-impl-T-2.md | Endpoint implementation notes + evidence |
+| Impl artifact T-3 | implementation-artifacts/YYYY-MM-DD-impl-T-3.md | Test implementation notes + evidence |
+| Review T-2 | implementation-artifacts/YYYY-MM-DD-review-T-2.md | Reviewer feedback on endpoint |
+| Review T-3 | implementation-artifacts/YYYY-MM-DD-review-T-3.md | Reviewer feedback on tests |
+| Test report T-4 | implementation-artifacts/YYYY-MM-DD-test-T-4.md | Tester evidence report, smoke test results |
 
 ## Expected Behavioral Check Results (22 checks)
 
@@ -137,11 +159,29 @@ file_scope:
 |-----------|-----------------|
 | CLAUDE.md + agent loading | ~3,000 |
 | spec-protocol.md (on demand) | ~4,000 |
-| Agent dispatches (4-6 agents) | ~35,000–55,000 |
-| Tool calls (bash, file ops) | ~5,000–10,000 |
-| **Total estimated** | **~47,000–72,000** |
+| Agent dispatches (6-8 agents) | ~55,000–80,000 |
+| Tool calls (bash, file ops) | ~8,000–16,000 |
+| **Total estimated** | **~70,000–100,000** |
 | Budget ceiling | 128,000 |
-| **Headroom** | **~56,000–81,000 (44-63%)** |
+| **Headroom** | **~28,000–58,000 (22-45%)** |
+
+## Known Gaps from Initial Run
+
+The first Scenario D execution (before permission fixes) revealed these gaps:
+
+| # | Gap | Severity | Resolution |
+|---|-----|----------|-----------|
+| 1 | Feature tracker `phase: "VERIFIED"` instead of `"DONE"` | MAJOR | Clarified in spec-protocol.md Section 12 — Slice 1 MUST use DONE; added explicit instruction to scenario prompt |
+| 2 | Task IDs `T-1` instead of `T-001` (zero-padded) | MINOR | Cosmetic; Section 9 specifies T-{NNN} format |
+| 3 | Evidence format: tables instead of canonical bullets | MINOR | T-003 matched Section 11; T-001/T-002 used tables |
+| 4 | Off-by-one line number references | MINOR | Common LLM behavior; reviewer caught but approved |
+| 5 | Extra fields in feature-tracker.json | MINOR | Harmless per "ignore unrecognized fields" rule |
+| 6 | 11 confirmation prompts blocked autonomy | CRITICAL | Fixed — 12 bash patterns added to settings.local.json |
+
+**From-scratch reproducibility confidence:**
+- Functional correctness: 95%
+- COMPLEX routing compliance: 95%
+- Protocol compliance: 85% (improved from 70% with prompt clarification and spec-protocol fix)
 
 ## Execution Checklist
 
