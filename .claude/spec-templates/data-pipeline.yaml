@@ -1,0 +1,51 @@
+# Data Pipeline — Reusable Spec Template
+#
+# HOW TO USE:
+#   1. Replace {name} with the pipeline's domain name (e.g., order-import, event-enrichment).
+#   2. Replace {file} with actual source/destination paths or topic names.
+#   3. Adjust assertions to match the specific input schema and expected output format.
+#   4. If the pipeline is not idempotent by design, remove or rewrite assertion A4.
+#   5. Assertions MUST use controlled vocabulary: MUST / MUST NOT / SHOULD / MAY.
+#   6. Max 7 assertions per task (7x7 constraint).
+#
+# ANTI-PATTERN: Do NOT embed this template verbatim in a task description. The planner
+# MUST adapt it: fill all placeholders, specify the exact input/output schemas, and confirm
+# every assertion is observable in the project's test environment before embedding in a spec.
+
+pattern_name: "Data Pipeline"
+description: "Ingest, validate, transform, and route records through a processing pipeline with error isolation."
+typical_tier: MODERATE
+intent_template: "Implement {name} data pipeline that ingests from {file} and writes to {file}"
+
+assertions:
+  - id: A1
+    positive: "The {name} pipeline MUST reject records missing required fields and write them to the error output with an error reason field"
+    negative: "The {name} pipeline MUST NOT silently drop or partially process records with missing required fields"
+
+  - id: A2
+    positive: "The {name} transformer MUST produce output records that conform to the documented output schema for every valid input record"
+    negative: "The {name} transformer MUST NOT emit output records with fields missing from or mistyped against the output schema"
+
+  - id: A3
+    positive: "The {name} pipeline MUST write a structured error entry to the error output when a record fails validation or transformation"
+    negative: "The {name} pipeline MUST NOT halt or crash the entire pipeline run due to a single malformed record"
+
+  - id: A4
+    positive: "Running the {name} pipeline twice on the same input MUST produce the same output — no duplicate records in the destination"
+    negative: "Running the {name} pipeline twice on the same input MUST NOT append duplicate records to the destination"
+
+  - id: A5
+    positive: "Successfully processed records MUST be written to the correct destination path or channel specified in the pipeline configuration"
+    negative: "Successfully processed records MUST NOT be written to the error output or discarded when transformation succeeds"
+
+constraints:
+  - "MUST process records via a streaming or chunked approach — MUST NOT load the entire dataset into memory at once"
+  - "MUST isolate per-record errors — a failure on record N MUST NOT prevent processing of records N+1 onward"
+  - "MUST write unit tests for the transformer and integration tests for the end-to-end pipeline flow"
+  - "SHOULD log a summary on completion: total records received, succeeded, and failed"
+  - "MAY use a configurable batch size for chunked processing; default SHOULD be 100 records"
+
+file_scope_patterns:
+  - "src/pipelines/{name}.js"
+  - "src/transformers/{name}.js"
+  - "tests/pipelines/{name}.test.js"
