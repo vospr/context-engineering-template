@@ -188,7 +188,7 @@ SDD is an external, verifiable, decomposable definition of done that survives co
 - **Slice 1 (MVP Pipeline):** minimum spec packet + controlled vocabulary + inline assertions + post-task audit
 - **Slice 2 (Track & Continue):** feature tracker for continuity and zero-handoff resumption
 - **Slice 3 (Govern & Verify):** constitution/gates (optional), two-layer verification, escalation
-- **Slice 4 (Scale & Extend):** permanent agent extensions and reusable spec templates
+- **Slice 4 (Scale & Extend):** permanent agent extensions (planner spec authoring, reviewer spec review, tester assertion/integration modes), reusable spec templates, agent-specific spec views, metrics dashboard
 
 ### Key Architecture Decisions
 
