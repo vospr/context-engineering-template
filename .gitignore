@@ -52,5 +52,9 @@ temp/
 planning-artifacts/session-context.md
 planning-artifacts/mcp-health.md
 
+# Runtime research artifacts (regenerated per project, not template files)
+# NOTE: planning-artifacts/knowledge-base/ IS tracked — it's the persistent RAG cache
+# NOTE: planning-artifacts/CLAUDE.md IS tracked — it's the directory index
+
 # User-specific settings
 .claude/settings.local.json
