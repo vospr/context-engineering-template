@@ -401,6 +401,31 @@ The template architecture is designed for resilience against common failure clas
 
 Reliable multi-session delivery requires structured context, not just model capability. This template provides a practical baseline for predictable orchestration and recoverable project execution.
 
+## Validation Results
+
+This template has been validated through four test scenarios, each exercising a different dimension:
+
+| Scenario | Focus | Result | Key Evidence |
+|----------|-------|--------|-------------|
+| **A** | Full-scope implementation (JS, SQLite, 282 tests) | Pass (after fix pass) | `tests/SCENARIOA-vs-SCENARIOB-REPORT-2026-02-13.md` |
+| **B** | Baseline comparison (no template) | Pass (limited scope) | Same report |
+| **C** | Autonomous first-pass quality (TypeScript, single prompt) | **Pass — zero issues** | Same report |
+| **D** | SDD pipeline behavioral validation (22 checks) | Estimated: 20-22/22 | `tests/SCENARIOD-execution-estimate.md` |
+
+### Scenario D: SDD Spec Lifecycle End-to-End
+
+Scenario D validates the SDD machinery itself — spec packets, tier routing, assertion evidence, and feature tracking — through a minimal health check endpoint. It is Case A only (requires `spec-protocol.md`).
+
+**22 behavioral checks** cover:
+- Spec packet quality (YAML format, controlled vocabulary, double-entry assertions)
+- Tier classification and routing
+- Evidence reporting (`{id}: PASS|FAIL — {file}:{line}`)
+- Feature tracker creation and state machine
+- Session continuity (cold-start resumable from files)
+- Agent orchestration (planner + implementer + verifier)
+
+See `tests/SCENARIOD-guidance.md` for the full validation checklist and `tests/SCENARIOD-execution-estimate.md` for the pre-execution analysis.
+
 ## Resources
 
 - `CLAUDE.md`
@@ -408,6 +433,7 @@ Reliable multi-session delivery requires structured context, not just model capa
 - `.claude/skills/`
 - `planning-artifacts/`
 - `implementation-artifacts/`
+- `tests/` — validation scripts and scenario reports
 
 ## License
 
