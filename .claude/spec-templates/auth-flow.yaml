@@ -1,0 +1,59 @@
+# Auth Flow — Reusable Spec Template
+#
+# HOW TO USE:
+#   1. Replace {endpoint} with the auth path prefix (e.g., /api/auth, /auth).
+#   2. Replace {file} references with actual project file paths.
+#   3. Choose JWT or session-based strategy and remove the inapplicable constraint.
+#   4. Adjust assertions to match the chosen token lifecycle (refresh tokens, sliding sessions, etc.).
+#   5. Assertions MUST use controlled vocabulary: MUST / MUST NOT / SHOULD / MAY.
+#   6. Max 7 assertions per task (7x7 constraint).
+#
+# ANTI-PATTERN: Do NOT embed this template verbatim in a task description. The planner
+# MUST adapt it: fill all placeholders, pick the auth strategy, and verify every assertion
+# is testable against the actual implementation before embedding in a task spec packet.
+
+pattern_name: "Authentication Flow"
+description: "Login, logout, token issuance, and route protection for a user authentication system."
+typical_tier: COMPLEX
+intent_template: "Implement authentication flow at {endpoint} with token-based access control"
+
+assertions:
+  - id: A1
+    positive: "POST {endpoint}/login MUST return HTTP 200 with a token in the response body when credentials are valid"
+    negative: "POST {endpoint}/login MUST NOT return a token when credentials are invalid or the user does not exist"
+
+  - id: A2
+    positive: "POST {endpoint}/login MUST return HTTP 401 with a generic error message when credentials are invalid"
+    negative: "POST {endpoint}/login MUST NOT reveal whether the failure was due to an unknown username or wrong password"
+
+  - id: A3
+    positive: "A protected route MUST return HTTP 401 when the Authorization header is absent"
+    negative: "A protected route MUST NOT serve protected data when no Authorization header is present"
+
+  - id: A4
+    positive: "A protected route MUST return HTTP 401 when the token in the Authorization header is expired or malformed"
+    negative: "A protected route MUST NOT accept an expired token as valid regardless of payload content"
+
+  - id: A5
+    positive: "POST {endpoint}/logout MUST invalidate the current session or token so subsequent requests with it return 401"
+    negative: "POST {endpoint}/logout MUST NOT leave the token or session active after a successful logout response"
+
+  - id: A6
+    positive: "Passwords MUST be stored as bcrypt hashes — the users table or store MUST NOT contain plaintext passwords"
+    negative: "MUST NOT store, log, or return a plaintext password at any point in the auth flow"
+
+  - id: A7
+    positive: "Auth middleware MUST be implemented as a standalone function in src/middleware/auth.js and MUST be reusable across routes"
+    negative: "Auth middleware logic MUST NOT be duplicated inline across individual route handlers"
+
+constraints:
+  - "MUST use JWT (jsonwebtoken) OR express-session — choose one and document the choice in the spec packet"
+  - "MUST use bcrypt (bcryptjs) for password hashing with a minimum cost factor of 10"
+  - "MUST implement auth enforcement as middleware — route handlers MUST NOT duplicate token validation"
+  - "MUST NOT store raw tokens in a database unless implementing a token blacklist for logout"
+  - "SHOULD set token expiry no longer than 24 hours for stateless JWT implementations"
+
+file_scope_patterns:
+  - "src/routes/auth.js"
+  - "src/middleware/auth.js"
+  - "tests/auth.test.js"

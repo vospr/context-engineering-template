@@ -1,0 +1,59 @@
+# REST CRUD Endpoint — Reusable Spec Template
+#
+# HOW TO USE:
+#   1. Replace all {entity} placeholders with the domain object name (e.g., user, product, order).
+#   2. Replace {endpoint} with the actual API path prefix (e.g., /api/users, /api/products).
+#   3. Adjust file_scope_patterns to match real project paths.
+#   4. Add or remove assertions to fit the specific feature — never copy blindly.
+#   5. Assertions MUST use controlled vocabulary: MUST / MUST NOT / SHOULD / MAY.
+#   6. Max 7 assertions per task (7x7 constraint).
+#
+# ANTI-PATTERN: Do NOT embed this template verbatim in a task description. The planner
+# MUST adapt it: fill all placeholders, verify every assertion is relevant, and adjust
+# file_scope to the actual files that will be modified.
+
+pattern_name: "REST CRUD Endpoint"
+description: "Standard create, read, update, and delete operations for a named resource over HTTP."
+typical_tier: MODERATE
+intent_template: "Implement CRUD operations for {entity} resource at {endpoint}"
+
+assertions:
+  - id: A1
+    positive: "POST {endpoint} MUST return HTTP 201 with the created {entity} body on success"
+    negative: "POST {endpoint} MUST NOT return 201 when required fields are absent or invalid"
+
+  - id: A2
+    positive: "GET {endpoint} MUST return HTTP 200 with a JSON array of {entity} records"
+    negative: "GET {endpoint} MUST NOT return a non-array body or a 5xx status under normal load"
+
+  - id: A3
+    positive: "GET {endpoint}/{id} MUST return HTTP 200 with the matching {entity} body when {id} exists"
+    negative: "GET {endpoint}/{id} MUST NOT return 200 when {id} does not exist — MUST return 404"
+
+  - id: A4
+    positive: "PUT {endpoint}/{id} MUST return HTTP 200 with the updated {entity} body on success"
+    negative: "PUT {endpoint}/{id} MUST NOT apply partial or malformed update payloads without returning 400"
+
+  - id: A5
+    positive: "DELETE {endpoint}/{id} MUST return HTTP 204 with no body on successful deletion"
+    negative: "DELETE {endpoint}/{id} MUST NOT return 204 when {id} does not exist — MUST return 404"
+
+  - id: A6
+    positive: "Every response from {endpoint} MUST include the header Content-Type: application/json"
+    negative: "No response from {endpoint} MUST omit Content-Type or return text/html on success"
+
+  - id: A7
+    positive: "POST and PUT requests to {endpoint} MUST reject missing required fields with HTTP 400 and an error body"
+    negative: "POST and PUT requests to {endpoint} MUST NOT persist records with missing required fields"
+
+constraints:
+  - "MUST use Express.js Router — route handlers MUST NOT be defined directly on the app object"
+  - "MUST separate app configuration (src/app.js) from server startup (src/server.js)"
+  - "MUST write Jest + supertest integration tests covering all five CRUD operations"
+  - "MUST NOT use synchronous file I/O inside route handlers"
+  - "SHOULD return consistent error shapes: { error: string, field?: string }"
+
+file_scope_patterns:
+  - "src/routes/{entity}.js"
+  - "src/app.js"
+  - "tests/{entity}.test.js"

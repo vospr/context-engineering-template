@@ -769,6 +769,21 @@ Each entry MUST contain these fields in this exact order:
 
 > **Slice applicability:** Slice 1 implementations MUST use only DRAFT | ACTIVE | DONE for the `phase` field. Extended states (LINT_PASS, RATIFIED, EXECUTING, VERIFIED, GRADUATED) are available only when Slice 3 governance is active. Agents MUST NOT use Slice 3 phase values unless `constitution.md` exists in `planning-artifacts/`.
 
+> See Section 18 (Metrics Dashboard) for Slice 4 extended fields and tracking capabilities.
+
+#### Slice 4 Extended Fields (Optional)
+
+When metrics tracking is active, the following fields MAY be added to feature tracker entries:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `tier` | string | Feature complexity tier (TRIVIAL/SIMPLE/MODERATE/COMPLEX) |
+| `token_budget` | number | Token budget for this feature (by tier: TRIVIAL=500, SIMPLE=2000, MODERATE=8000, COMPLEX=25000) |
+| `token_spent` | number | Actual tokens consumed (updated by dispatch loop) |
+| `entropy_score` | number | Spec stability metric (0.0 = stable, 1.0 = high churn). Count of spec amendments / total assertions. |
+| `assertions_total` | number | Total assertion count across all tasks |
+| `assertions_passing` | number | Count of assertions with PASS status |
+
 ### Complete File Example
 
 ```json
@@ -1360,3 +1375,43 @@ These illustrate the concept — actual templates would be project-specific:
 | SIMPLE | Rarely — simple specs don't benefit from templates |
 | MODERATE | Primary use case — templates accelerate standard feature specs |
 | COMPLEX | Templates provide starting point; architect pre-check may add additional assertions |
+
+---
+
+## 18. Metrics Dashboard (Slice 4)
+
+Metrics tracking is an optional Slice 4 capability that provides visibility into token consumption, assertion quality, and spec stability across features. Metrics are stored in the feature tracker's extended fields (Section 12) and computed on demand.
+
+### Token Tracking
+
+- The dispatch loop updates `token_spent` in the feature tracker after each agent dispatch.
+- Alert threshold: when `token_spent / token_budget > 0.85` (85%), flag the feature for review.
+- Token budgets by tier: TRIVIAL=500, SIMPLE=2,000, MODERATE=8,000, COMPLEX=25,000.
+- Baseline: approximately 80 tokens per task; use this to sanity-check `token_budget` against planned task count.
+
+### Assertion Metrics
+
+- Pass rate: `assertions_passing / assertions_total` per feature.
+- Target: 100% for features in DONE phase; any rate below 100% triggers investigation.
+- `assertions_total` and `assertions_passing` are updated automatically when the tester or dispatch loop processes assertion results.
+
+### Entropy Score
+
+- Formula: `(spec_amendments + respec_count) / assertions_total`
+- Low entropy (`< 0.2`): spec is stable, well-defined.
+- Medium entropy (`0.2–0.5`): some churn, acceptable for COMPLEX features.
+- High entropy (`> 0.5`): spec instability detected; consider re-architecture or feature split.
+- `entropy_score` is incremented each time a spec is amended or NEEDS_RESPEC fires for the feature.
+
+### Spec Quality Metrics
+
+- **Vague term rate:** count of assertions flagged by the quality gate (Section 4) divided by total assertions. Target: 0%.
+- **Double-entry compliance:** assertions with both positive and negative fields present divided by total assertions. Target: 100%.
+- **File scope accuracy:** file scope violations (Gate 3, Section 14) divided by total tasks. Target: 0%.
+
+### When to Use
+
+- Metrics are OPTIONAL for Slice 1–2 implementations.
+- Metrics become RECOMMENDED for MODERATE+ features when Slice 4 is active.
+- Metrics are tracked in the feature tracker's extended fields (Section 12).
+- Dashboard view: read `planning-artifacts/feature-tracker.json` and compute metrics per feature using the formulas above.
