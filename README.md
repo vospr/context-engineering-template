@@ -75,39 +75,18 @@ flowchart LR
 
 ### Prerequisites
 - Git installed
-- Claude Code CLI installed
+- Claude Code CLI installed/ OpenAI Codex CLI
 
 ### 1. Clone or download template files
 
-**Option A: Using degit (recommended)**
-**Option A: Using degit (recommended - fastest, cross-platform)**
 ```bash
 npx degit vospr/context-engineering-template my-project
 cd my-project
 git init
 ```
 
-**Option B: Using git clone**
-```bash
-git clone https://github.com/vospr/context-engineering-template.git my-project
-cd my-project
-rm -rf .git
-git init
-```
-
-### 2. Customize placeholder skills (Required)
-rm -rf .git  # Remove template git history
-git init     # Start fresh repository
-```
-
-**Option C: Manual download**
-1. Download repository as ZIP from GitHub
-2. Extract to your project directory
-3. Keep: `CLAUDE.md`, `.claude/` folder, `.gitignore`
-
 ### 2. Customize placeholder skills (Required)
 
-Four files in `.claude/skills/` are marked `[PLACEHOLDER]` and **must be customized**:
 
 ```bash
 .claude/skills/coding-standards.md        # Your language, linter, patterns
@@ -115,54 +94,6 @@ Four files in `.claude/skills/` are marked `[PLACEHOLDER]` and **must be customi
 .claude/skills/testing-strategy.md        # Your test framework, coverage
 .claude/skills/architecture-principles.md # Your system constraints, design
 ```
-
-Customize these files for your stack:
-
-```bash
-.claude/skills/coding-standards.md
-.claude/skills/review-checklist.md
-.claude/skills/testing-strategy.md
-.claude/skills/architecture-principles.md
-```
-
-Validation check:
-
-```bash
-grep -r "\[PLACEHOLDER\]" .claude/skills/
-```
-
-### 3. Start Claude Code
-
-```bash
-claude
-```
-**Quick validation**:
-```bash
-# Should return no results if customization is complete
-grep -r "\[PLACEHOLDER\]" .claude/skills/
-```
-
-**Example stacks** (customize skills for):
-- Python/Django, Node.js/Express, React/TypeScript, Go microservices, etc.
-
-### 3. Verify structure
-```bash
-# Should show CLAUDE.md and .claude/
-ls -la
-
-# Should list 8 files (6 agents + template + CLAUDE.md index)
-ls .claude/agents/
-
-# Should list 7 files (6 skills + CLAUDE.md index)
-ls .claude/skills/
-```
-
-### 4. Start Claude Code
-```bash
-claude
-```
-
-The Main Agent reads CLAUDE.md automatically and begins the dispatch loop.
 
 ## Architecture
 
