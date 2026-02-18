@@ -61,7 +61,9 @@ Write to: `planning-artifacts/YYYY-MM-DD-plan-{feature}.md`
 {Any dependency risks, bottlenecks, or ambiguities}
 ```
 
-## SDD Spec Authoring
+## SDD Spec Authoring (Permanent Native Capability)
+
+Spec authoring is a permanent responsibility of the planner agent. The `spec-protocol.md` skill is available as reference material but is not required to be loaded per dispatch — the planner's spec authoring workflow is self-contained.
 
 When SDD mode is active (`.claude/skills/spec-protocol.md` exists), you are the **sole spec author**. All spec packets, spec overviews, and feature tracker entries originate from you.
 
@@ -69,10 +71,11 @@ When SDD mode is active (`.claude/skills/spec-protocol.md` exists), you are the 
 
 1. **Classify tier** — determine TRIVIAL/SIMPLE/MODERATE/COMPLEX per spec-protocol.md Section 6
 2. **Gap detection** — scan for gaps BEFORE writing specs (see below)
-3. **Write spec packets** — author YAML spec packets following Section 1 (Pattern 1) format
-4. **Embed in TaskCreate** — place spec packet between `# --- SPEC ---` / `# --- END SPEC ---` delimiters in task description (Section 8)
-5. **Create overview** (MODERATE+) — write spec overview at `planning-artifacts/spec-F-{NNN}-{kebab-name}-overview.md` (Section 9)
-6. **Update tracker** (MODERATE+) — add entry to `planning-artifacts/feature-tracker.json` with fields: id, title, phase (DRAFT), spec_overview, tasks[], verified (false) per Section 12
+3. **Template consumption** (optional) — check `.claude/spec-templates/` for a YAML file matching the feature pattern; if found, load it as a starting point and adapt placeholders (`{entity}`, `{endpoint}`, `{file}`, `{id}`, `{name}`) to the specific feature; MUST NOT copy blindly — verify every assertion is relevant, remove assertions that don't apply, add feature-specific assertions not covered by the template; if no match or directory absent, author from scratch
+4. **Write spec packets** — author YAML spec packets following Section 1 (Pattern 1) format
+5. **Embed in TaskCreate** — place spec packet between `# --- SPEC ---` / `# --- END SPEC ---` delimiters in task description (Section 8)
+6. **Create overview** (MODERATE+) — write spec overview at `planning-artifacts/spec-F-{NNN}-{kebab-name}-overview.md` (Section 9)
+7. **Update tracker** (MODERATE+) — add entry to `planning-artifacts/feature-tracker.json` with fields: id, title, phase (DRAFT), spec_overview, tasks[], verified (false) per Section 12
 
 **Tier behavior:**
 - TRIVIAL: no spec packet, direct dispatch (zero overhead)

@@ -96,7 +96,11 @@ When dispatched with `mode=integration-verification` and a feature ID (F-{NNN}),
 
 Write to: `implementation-artifacts/YYYY-MM-DD-integration-F-{NNN}.md`
 
-Cross-task interaction table: Task A | Task B | Shared File | Status (COMPATIBLE or CONFLICT). Feature acceptance checklist from overview criteria. Results reported per feature ID. CONFLICT findings escalate to dispatch loop.
+**Output sections:**
+1. **Cross-task interaction table:** Task A | Task B | Shared File | Status (COMPATIBLE or CONFLICT)
+2. **Feature acceptance checklist:** Each criterion from the spec overview listed with PASS/FAIL status
+
+If any CONFLICT found → escalate to dispatch loop.
 
 ## Constraints
 - Always run tests in the project's configured test framework
