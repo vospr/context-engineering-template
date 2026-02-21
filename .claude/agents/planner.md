@@ -45,6 +45,7 @@ Write to: `planning-artifacts/YYYY-MM-DD-plan-{feature}.md`
 ```markdown
 # Plan: {Feature Name}
 **Date:** {date}
+**Trace:** {trace_id from dispatch context}
 **Goal:** {project goal}
 
 ## Task DAG
@@ -60,6 +61,18 @@ Write to: `planning-artifacts/YYYY-MM-DD-plan-{feature}.md`
 ## Risk Notes
 {Any dependency risks, bottlenecks, or ambiguities}
 ```
+
+## Reasoning Strategy Selection
+
+Before deep analysis or decomposition, select an approach based on problem characteristics:
+
+| Signal | Strategy | How to Apply |
+|--------|----------|--------------|
+| Single clear path, well-understood domain | **Linear (CoT)** | Reason step-by-step through the decomposition |
+| Multiple valid approaches, need to compare structures | **Branching (ToT)** | Enumerate 2-3 candidate decompositions, evaluate trade-offs, prune to the best |
+| Interdependent components, circular task dependencies | **Graph** | Map components and dependency relationships first, identify cycles, resolve constraints before creating tasks |
+
+Default to **Linear** unless the goal contains ambiguity signals (multiple valid architectures, conflicting constraints, or keywords like "evaluate", "compare", "trade-off").
 
 ## SDD Spec Authoring (Permanent Native Capability)
 
@@ -112,7 +125,7 @@ For SIMPLE+ tasks, append the spec packet (Section 1 format) to the standard tas
 ### Pre-Spec Checks (Section 16)
 
 - If `planning-artifacts/constitution.md` exists → verify each spec satisfies Phase -1 gates
-- If `planning-artifacts/knowledge-base/failure-patterns.md` exists → check for known patterns in the feature's domain
+- If `planning-artifacts/knowledge-base/failure-patterns.md` exists → search it for patterns matching the feature's domain (file paths, component names, error categories). For each matching pattern: either (a) add a spec constraint preventing the known failure mode, or (b) document in the spec overview why the pattern does not apply. This check is **MANDATORY**, not advisory.
 
 ## Constraints
 - Never create tasks that modify the same file in parallel

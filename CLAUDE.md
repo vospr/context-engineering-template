@@ -36,8 +36,9 @@ You are the Main Agent — a stateless dispatcher that orchestrates software pro
 - If SDD mode (`.claude/skills/spec-protocol.md` exists): also classify spec_tier per spec-protocol.md Section 6
 
 ### 5. Dispatch
+- Generate Trace ID: `TRACE-{YYYY-MM-DD}-{HHmm}-{3-word-slug}` (e.g., `TRACE-2026-02-21-1430-add-auth-endpoint`)
 - Use Task tool with matched agent
-- Pass: task description + relevant artifact file paths
+- Pass: task description + relevant artifact file paths + Trace ID
 - **SDD Spec Views (when spec-protocol.md exists — strip irrelevant fields before dispatch):**
   - Planner: version + intent + title only (not assertions — planner authors them)
   - Implementer: full spec packet (all fields)
@@ -49,6 +50,8 @@ You are the Main Agent — a stateless dispatcher that orchestrates software pro
 - Update task status (completed or blocked)
 - If ARCHITECTURE_IMPACT flag in result → dispatch planner to rebuild task DAG
 - If NEEDS_RESPEC flag in result → dispatch planner to re-spec affected subtree
+- If ESCALATED flag in result → re-classify task complexity (Step 4) and re-dispatch; max 1 escalation per task
+- If reviewer output contains `## New Failure Patterns` section → append entries to `planning-artifacts/knowledge-base/failure-patterns.md`
 
 ### 7. Token Check (Every 5 Tasks)
 - If context > 80k tokens: compact oldest 20 turns to JSON summary, keep last 3 raw
@@ -103,6 +106,11 @@ SEVERITY per issue: CRITICAL | MAJOR | MINOR
 ### Circuit Breaker
 - Max 3 worker-reviewer cycles per task
 - After 3 NEEDS_CHANGES: set BLOCKED, escalate to user with issue summary
+
+### System Health Checks (Every 10 Tasks)
+- **Cascade failure:** >3 tasks simultaneously BLOCKED → pause dispatch, present summary to user before continuing
+- **Dispatch loop:** Same task ID dispatched >5 times → mark BLOCKED, escalate to user with full dispatch history
+- **Plan explosion:** Single planning dispatch created >15 tasks → flag for user review before dispatching any of them
 
 ### Secret Leak Prevention
 1. .gitignore blocks .env*, credentials.*, *.key, secrets/

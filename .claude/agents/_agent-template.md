@@ -21,6 +21,7 @@ disallowedTools: [] # Tools this agent must NOT use
 ## Output Format
 - Write results to: `{planning-artifacts|implementation-artifacts}/{naming-convention}.md`
 - Include at minimum:
+  - **Trace**: {trace_id from dispatch context}
   - **Status**: COMPLETED | NEEDS_REVIEW | BLOCKED
   - **Summary**: 2-3 sentence description of what was done
   - **Artifacts**: List of files created or modified

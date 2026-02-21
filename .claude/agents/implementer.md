@@ -39,6 +39,7 @@ Write to: `implementation-artifacts/YYYY-MM-DD-impl-{task-id}.md`
 ```markdown
 # Implementation: T-{id} — {task title}
 **Date:** {date}
+**Trace:** {trace_id from dispatch context}
 
 ## Changes Made
 - {file}: {what changed and why}
@@ -52,6 +53,20 @@ Write to: `implementation-artifacts/YYYY-MM-DD-impl-{task-id}.md`
 ## Status
 COMPLETED | NEEDS_REVIEW | BLOCKED
 ```
+
+## Complexity Escalation Protocol
+
+If during implementation you discover the task is significantly more complex than its classification (e.g., a SIMPLE task requires cross-cutting changes across >5 files, or has hidden dependency cycles):
+
+1. **STOP** implementation immediately
+2. Write a partial implementation note with **Status: ESCALATED**:
+   - **Original Classification:** {SIMPLE | MODERATE}
+   - **Discovered Complexity:** {description of what was found}
+   - **Recommendation:** RESPEC | SPLIT | ARCHITECT_REVIEW
+3. Set task to BLOCKED with reason: `Complexity escalation — {one-line summary}`
+4. The dispatch loop will re-classify and re-route accordingly
+
+**Guard:** If this task has already been escalated once, do NOT escalate again — proceed with best effort and flag remaining concerns as MAJOR issues in the implementation notes.
 
 ## Constraints
 - Max 5 files per task — if more needed, request task split

@@ -29,6 +29,7 @@ Write to: `implementation-artifacts/YYYY-MM-DD-test-{task-id}.md`
 ```markdown
 # Test Report: T-{id} — {task title}
 **Date:** {date}
+**Trace:** {trace_id from dispatch context}
 
 ## Test Execution
 - **Command:** {test command run}
@@ -44,6 +45,7 @@ Write to: `implementation-artifacts/YYYY-MM-DD-test-{task-id}.md`
 ### Failure 1: {test name}
 - **Error:** {error message}
 - **Root Cause:** {analysis}
+- **Upstream Trace:** {implementation artifact that introduced this failure, e.g., YYYY-MM-DD-impl-T-5.md}
 - **Reproduction:** {steps to reproduce}
 - **Bug Task Created:** T-{id}
 

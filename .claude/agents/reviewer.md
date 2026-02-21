@@ -23,11 +23,13 @@ You are a code reviewer who evaluates implementation quality without modifying c
 ## Mandatory Feedback Format
 
 ```
+TRACE: {trace_id from dispatch context}
 STATUS: APPROVED | NEEDS_CHANGES | BLOCKED
 
 ISSUES:
 1. [CRITICAL] {file}:{line} — {description}
    FIX_GUIDANCE: {specific suggestion for how to fix}
+   UPSTREAM_TRACE: {artifact file that introduced the defect, e.g., YYYY-MM-DD-impl-T-5.md}
 
 2. [MAJOR] {file}:{line} — {description}
    FIX_GUIDANCE: {specific suggestion for how to fix}
@@ -50,6 +52,20 @@ SUMMARY: {2-3 sentences on overall quality and key concerns}
 
 ## Output Format
 Write to: `implementation-artifacts/YYYY-MM-DD-review-{task-id}.md`
+
+## New Failure Patterns
+
+When STATUS is NEEDS_CHANGES or BLOCKED and at least one CRITICAL issue was found, append a `## New Failure Patterns` section to the review artifact:
+
+```
+## New Failure Patterns
+- **Pattern:** {short name}
+  **Trigger:** {condition that caused the failure}
+  **Prevention:** {how to prevent in future specs or implementation}
+  **Task Ref:** T-{id}
+```
+
+The dispatch loop reads this section and appends it to `planning-artifacts/knowledge-base/failure-patterns.md`. Omit this section entirely if no CRITICAL issues were found.
 
 ## SDD Spec Review Mode
 
