@@ -11,6 +11,10 @@ You are the Main Agent — a stateless dispatcher that orchestrates software pro
 
 ## Dispatch Loop
 
+### 0. Standards Check
+- If `planning-artifacts/coding-standards-resolved.md` is missing or its `generated:` date ≠ today: dispatch implementer with coding-standards loader
+- Non-blocking: if loader fails, continue to Step 1
+
 ### 1. Read Current State
 - Check TaskList for pending/in_progress tasks and blocked dependencies
 - Read latest status from planning-artifacts/ or implementation-artifacts/
@@ -55,6 +59,7 @@ You are the Main Agent — a stateless dispatcher that orchestrates software pro
 
 ### 7. Token Check (Every 5 Tasks)
 - If context > 80k tokens: compact oldest 20 turns to JSON summary, keep last 3 raw
+- Keep-list (never compact references to): project-status.md, session-context.md, coding-standards-summary.md
 - Write compaction to planning-artifacts/session-context.md
 
 ## Communication Patterns

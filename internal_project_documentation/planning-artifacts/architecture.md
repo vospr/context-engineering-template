@@ -49,7 +49,16 @@ The Main Agent executes a fixed loop:
 6. Process results and update artifacts.
 7. Periodically compact context and persist summaries.
 
-### 4.2 SDD Mode (Spec-Driven Development)
+### 4.2 Dynamic Coding Standards Loader
+Before the main dispatch loop begins, Step 0 (Standards Check) triggers the coding standards loader if `planning-artifacts/coding-standards-resolved.md` is missing or stale (generated date ≠ today). The loader:
+1. Detects the project stack (manifests, file extensions, CLAUDE.md `stack:` field) → writes `detected-stack.json`
+2. Resolves sources from `coding-standards-sources.yaml` (local files + `.claude/standards-cache/` for remotes)
+3. Merges rules by trust priority (override > verified > community) → writes `coding-standards-resolved.md`
+4. Extracts a compressed summary (≤400 tokens) → writes `coding-standards-summary.md` (on the compaction keep-list)
+
+The loader is offline-capable: remote fetching is delegated to a one-time researcher dispatch or manual cache population. If the registry is missing, the loader writes a warning and does not block dispatch.
+
+### 4.3 SDD Mode (Spec-Driven Development)
 SDD is opt-in via the presence of `.claude/skills/spec-protocol.md`. In SDD mode:
 - Specs are embedded inline in task descriptions (no extra file reads).
 - The planner authors spec packets and, for larger work, a spec overview document.
@@ -75,6 +84,7 @@ SDD is opt-in via the presence of `.claude/skills/spec-protocol.md`. In SDD mode
 - **Agents**: Add new agents or extend existing agent rules.
 - **Spec templates**: Optional `.claude/spec-templates/` for common patterns.
 - **Knowledge base**: Failure patterns and research notes under planning artifacts.
+- **Coding standards**: Add language entries to `coding-standards-sources.yaml`; place project overrides in `.claude/skills/overrides/`.
 
 ## 8. Known Risks
 - Overgrowth of artifacts without periodic curation.
@@ -87,3 +97,4 @@ SDD is opt-in via the presence of `.claude/skills/spec-protocol.md`. In SDD mode
 - `internal_project_documentation/planning-artifacts/epics.md`
 - `internal_project_documentation/brainstorming/brainstorming-session-2026-02-17.md`
 - `internal_project_documentation/brainstorming/brainstorming-session-2026-02-21.md`
+- `internal_project_documentation/brainstorming/brainstorming-session-2026-02-23.md`

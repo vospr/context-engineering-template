@@ -17,7 +17,14 @@ Work is organized into slices that build capabilities progressively:
 - Slice 3: Governance and verification gates (optional constitution).
 - Slice 4: Scaled agent extensions and reusable spec templates.
 
-## 4. Planning and Epics
+## 4. Dynamic Coding Standards Loading
+Before the dispatch loop runs, Step 0 checks if resolved coding standards are current:
+- If `planning-artifacts/coding-standards-resolved.md` is missing or stale → dispatch implementer with coding-standards loader skill
+- Loader detects stack, resolves sources from `coding-standards-sources.yaml`, merges by trust priority, writes resolved + summary artifacts
+- Non-blocking: if the loader fails, dispatch continues normally
+- Cache population for remote sources is a separate one-time researcher dispatch or manual step
+
+## 5. Planning and Epics
 Requirements are decomposed into epics and stories that map to the delivery slices. This provides a structured path from architecture decisions to implementable tasks.
 
 ## Sources

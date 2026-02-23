@@ -299,23 +299,41 @@ This document provides a comprehensive status overview of all 17 stories across 
 ### CLAUDE.md (Dispatch Loop & Main Agent)
 
 **Location:** `/context-engineering-template/CLAUDE.md`
-**Lines:** 149 (file size under 200-line constraint)
+**Lines:** 162 (file size under 200-line constraint)
 **Stories Affected:** 2.1 (SDD Detection & Dispatch Loop Integration)
 
 | Section | Lines | Story | Status | Purpose |
 |---------|-------|-------|--------|---------|
-| Dispatch Loop (Step 1-7) | 19-64 | 2.1 | PARTIAL | Task selection, agent matching, complexity classification, dispatch routing |
+| Standards Check (Step 0) | 14-16 | N/A (infra) | IMPLEMENTED | Dynamic coding standards loader trigger |
+| Dispatch Loop (Step 1-7) | 18-61 | 2.1 | PARTIAL | Task selection, agent matching, complexity classification, dispatch routing |
+| Token Check (Step 7) | 60-62 | N/A (infra) | IMPLEMENTED | Compaction keep-list includes coding-standards-summary.md |
 | Communication Patterns | 67-83 | 2.1 | PARTIAL | One-shot dispatch, worker-reviewer team, parallel fan-out |
 | Folder Conventions | 86-99 | 2.1 | PARTIAL | Artifact folder structure, file naming, state files |
 | Quality Gates | 102-112 | 2.1 | PARTIAL | Reviewer feedback format, circuit breaker, token budget |
 
 **CLAUDE.md Status Summary:**
-- **CURRENT:** 149 lines, all core dispatch loop logic present
+- **CURRENT:** 162 lines, all core dispatch loop logic present
+- **NEW (2026-02-23):** Step 0 Standards Check added; compaction keep-list added (includes coding-standards-summary.md)
 - **PARTIAL:** Story 2.1 modifications not yet integrated:
   - Step 2: Auto-spec logic for feature-tracker NOT present
   - Step 4: spec_tier classification NOT present
   - Step 6: NEEDS_RESPEC handling NOT present
 - **KEY CONSTRAINT:** File MUST remain under 200 lines; SDD logic lives in skills and agent definitions, not in CLAUDE.md itself
+
+---
+
+### Coding Standards Loader (New — 2026-02-23)
+
+**Location:** `/context-engineering-template/.claude/skills/coding-standards.md`
+**Lines:** 55 (rewritten from 50-line placeholder; limit 80)
+**Purpose:** Behavior-only skill — instructs agents to detect stack, resolve sources, write resolved standards and compressed summary.
+
+**Supporting Files:**
+- `coding-standards-sources.yaml` (repo root, 24 lines) — registry of language→source mappings with trust levels
+- `.claude/skills/overrides/README.md` (15 lines) — documents the local override convention
+- `.claude/standards-cache/` (not yet created) — future home for cached remote sources
+
+**Key Design Decision:** The implementer agent has `disallowedTools: ["WebFetch"]`, so the loader works offline with local files and cached sources only. Remote fetching is delegated to a researcher dispatch or manual cache population.
 
 ---
 
@@ -398,7 +416,7 @@ This document provides a comprehensive status overview of all 17 stories across 
 2. **Story Documentation:** `/docs/implementation-artifacts/[1-5]-[1-4]-*.md` (17 files, ~2,200 total lines) — status, dev notes, task breakdowns
 3. **Context Engineering Template:** `/context-engineering-template/` — source of truth for implemented code
    - `spec-protocol.md` (1,418 lines) — fully written, all 18 sections
-   - `CLAUDE.md` (149 lines) — partial SDD integration
+   - `CLAUDE.md` (162 lines) — Step 0 Standards Check, compaction keep-list, partial SDD integration
    - Agent files (planner.md 123 lines, reviewer.md 91 lines, tester.md 111 lines) — framework present, SDD extensions pending
 
 **Methodology:**
@@ -548,6 +566,6 @@ IMPLEMENTATION:        28.2% complete (code artifacts being added)
 
 ---
 
-**Last Updated:** February 20, 2026
-**Document Version:** 1.0
+**Last Updated:** February 23, 2026
+**Document Version:** 1.1
 **Maintained By:** Project Planning Team

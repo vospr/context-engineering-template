@@ -13,6 +13,7 @@ A lightweight, project-agnostic template that turns Claude Code into a context-e
 - [Project Structure](#project-structure)
 - [Design Principles](#design-principles)
 - [Context Engineering Framework](#context-engineering-framework)
+- [Dynamic Coding Standards](#dynamic-coding-standards)
 - [Idea Organization and Prioritization](#idea-organization-and-prioritization)
 - [Architectural Decisions Stress-Tested](#architectural-decisions-stress-tested)
 - [Why This Matters](#why-this-matters)
@@ -99,11 +100,12 @@ git init
 Customize these files for your stack:
 
 ```bash
-.claude/skills/coding-standards.md
 .claude/skills/review-checklist.md
 .claude/skills/testing-strategy.md
 .claude/skills/architecture-principles.md
 ```
+
+> **Note:** `coding-standards.md` is no longer a placeholder — it is a dynamic loader skill that resolves standards from `coding-standards-sources.yaml`. See [Dynamic Coding Standards](#dynamic-coding-standards).
 
 Validation check:
 
@@ -214,13 +216,14 @@ SDD is an external, verifiable, decomposable definition of done that survives co
 ## How It Works
 
 ### The Dispatch Loop (CLAUDE.md)
+0. **Standards Check** — if resolved coding standards are missing or stale, dispatch loader (non-blocking)
 1. **Read** current state from task system and artifacts
 2. **Select** next unblocked task
 3. **Match** task to best-fit specialized agent
 4. **Classify** complexity and choose model level
 5. **Dispatch** task with relevant context paths
 6. **Process** result and update status
-7. **Repeat** with periodic compaction/token checks
+7. **Repeat** with periodic compaction/token checks (keep-list protects critical references)
 
 ### Communication Patterns
 | Pattern | When | How |
@@ -243,7 +246,8 @@ Add a new `.md` file in `.claude/agents/` following `_agent-template.md`. The Ma
 
 ```
 project-root/
-├── CLAUDE.md                                    # Dispatch loop kernel (+3 lines for SDD)
+├── CLAUDE.md                                    # Dispatch loop kernel (Step 0 Standards Check + SDD)
+├── coding-standards-sources.yaml                # Language → coding standard source registry
 ├── README.md                                    # Project documentation
 ├── .gitignore                                   # Includes .env*, credentials.*, secrets/
 │
@@ -258,10 +262,14 @@ project-root/
 │   │
 │   ├── skills/
 │   │   ├── spec-protocol.md                     # [NEW: Slice 1] SDD core — format, vocabulary, assertions, governance seed
-│   │   ├── coding-standards.md                  # Existing project-specific coding rules
+│   │   ├── coding-standards.md                  # Dynamic loader skill (detects stack, resolves standards)
+│   │   ├── overrides/                           # Local project-specific standard overrides (trust: override)
+│   │   │   └── README.md                        # Override naming convention and format docs
 │   │   ├── review-checklist.md                  # Review quality gate checklist
 │   │   ├── testing-strategy.md                  # Existing testing approach
 │   │   └── architecture-principles.md           # Architecture constraints and principles
+│   │
+│   ├── standards-cache/                         # Cached remote coding standards (populated externally)
 │   │
 │   └── spec-templates/                          # [NEW: Slice 4, optional] Reusable spec patterns
 │       ├── rest-crud-endpoint.yaml              # Template for REST CRUD features
@@ -269,6 +277,9 @@ project-root/
 │       └── data-pipeline.yaml                   # Template for data processing features
 │
 ├── planning-artifacts/
+│   ├── detected-stack.json                      # Auto-detected project languages/frameworks
+│   ├── coding-standards-resolved.md             # Merged coding standards per language (full rules)
+│   ├── coding-standards-summary.md              # Compressed top rules (≤400 tokens, on keep-list)
 │   ├── feature-tracker.json                     # [NEW: Slice 2] Feature-level progress index
 │   ├── constitution.md                          # [NEW: Slice 3, optional] Immutable project principles
 │   ├── spec-F-001-{name}-overview.md            # [NEW: Slice 1] Per-feature spec overviews
@@ -336,54 +347,73 @@ The template was designed through a comprehensive brainstorming session using th
 
 How project state is persisted outside the context window - `planning-artifacts/`, `implementation-artifacts/`, decisions log; Git = recoverable lineage
 
-- **Structured status as markdown at known paths** - `CLAUDE.md:67-85` (Folder Conventions)
-- **Git branch per feature for lineage** - `CLAUDE.md:120-125` (Git Workflow section)
-- **Two-phase artifacts: planning -> implementation** - `CLAUDE.md:69-70`
-- **Dual state architecture: Tasks for flow, Files for memory** - `.claude/agents/planner.md:4` + `CLAUDE.md:67-85`
-- **Decisions written to files immediately** - `CLAUDE.md:8,111-113` (Principle 3)
+- **Structured status as markdown at known paths** - `CLAUDE.md:83-101` (Folder Conventions)
+- **Git branch per feature for lineage** - `CLAUDE.md:141-146` (Git Workflow section)
+- **Two-phase artifacts: planning -> implementation** - `CLAUDE.md:85-87`
+- **Dual state architecture: Tasks for flow, Files for memory** - `.claude/agents/planner.md:4` + `CLAUDE.md:83-101`
+- **Decisions written to files immediately** - `CLAUDE.md:8,132-134` (Principle 3)
 - **Git micro-commits as checkpoints** - `.claude/skills/git-workflow.md:34-41`
-- **Branch isolation - agents never work on main** - `CLAUDE.md:121`
+- **Branch isolation - agents never work on main** - `CLAUDE.md:142`
 - **Knowledge base as persistent RAG cache** - `planning-artifacts/knowledge-base/` (version-controlled, survives sessions)
 - **Directory CLAUDE.md indexes as semantic maps** - `.claude/agents/CLAUDE.md`, `.claude/skills/CLAUDE.md`, `planning-artifacts/CLAUDE.md`
 
 ### Context Retrieval: Read Current State Each Cycle
 
 - **Stateless Dispatcher** - `CLAUDE.md:6` (Principle 1: "Stateless")
-- **Minimal Read Window** - `CLAUDE.md:14-16` (latest + next step only)
+- **Minimal Read Window** - `CLAUDE.md:18-20` (latest + next step only)
 - **Task DAG for routing and dependencies** - `.claude/agents/planner.md:1-69`
 - **Graduated context loading via setting_sources + skills** - `.claude/agents/_agent-template.md:6-7`
-- **Self-discovering agent pool** - `CLAUDE.md:22-29`
+- **Self-discovering agent pool** - `CLAUDE.md:27-34`
 - **Local-first RAG priority chain** - `.claude/agents/researcher.md:21-41`
 
 ### Context Reduction: Token Budget + Compaction + RAG
 
 - **North Star: ship simple app in one 128k window** - `CLAUDE.md:9`
-- **Compaction at 80k** - `CLAUDE.md:45-47,107-109`
-- **Proactive compaction every 5 tasks** - `CLAUDE.md:45-47`
-- **CLAUDE.md max 200 lines** - `CLAUDE.md:136-141`
-- **Complexity classification for model selection** - `CLAUDE.md:31-34`
+- **Compaction at 80k with keep-list** - `CLAUDE.md:60-63,127-130`
+- **Proactive compaction every 5 tasks** - `CLAUDE.md:60-63`
+- **CLAUDE.md max 200 lines** - `CLAUDE.md:157-162`
+- **Complexity classification for model selection** - `CLAUDE.md:36-40`
 - **Task decomposition rule: 3-5 files max per task** - `.claude/agents/planner.md:26-30`
 
 ### Context Isolation: Specialized Subagents + Parallel Execution
 
 - **Delegated Mechanism Selection** - `.claude/agents/_agent-template.md:4-8`
-- **Worker-Reviewer autonomous quality loop** - `CLAUDE.md:54-59`
-- **Parallel fan-out pattern** - `CLAUDE.md:61-65`
+- **Worker-Reviewer autonomous quality loop** - `CLAUDE.md:70-75`
+- **Parallel fan-out pattern** - `CLAUDE.md:77-81`
 - **Dependency analysis prevents parallel file conflicts** - `.claude/agents/planner.md:20-23`
 
 ### Context Governance: Quality Gates + Security Controls
 
 - **Hooks as automated quality gates** - `.claude/settings.json:2-14`
-- **Circuit breaker: max 3 review cycles** - `CLAUDE.md:58-59,96-97`
-- **Structured feedback protocol** - `CLAUDE.md:89-93` + `.claude/agents/reviewer.md:23-49`
-- **MCP fallback chain** - `CLAUDE.md:131`
+- **Circuit breaker: max 3 review cycles** - `CLAUDE.md:74-75,111-113`
+- **Structured feedback protocol** - `CLAUDE.md:105-109` + `.claude/agents/reviewer.md:23-49`
+- **MCP fallback chain** - `CLAUDE.md:152`
 - **Secret leak defense layers** - `.gitignore:1-11` + `.claude/settings.json:3-12`
 
 ### Context Orchestration: Stateless Dispatcher Loop
 
 - **Main Agent dispatches all stages** - `CLAUDE.md:7`
-- **One universal dispatch pattern** - `CLAUDE.md:12-47`
+- **One universal dispatch pattern** - `CLAUDE.md:12-63`
 - **Two-level split: Main Agent rules vs Subagent rules** - `CLAUDE.md` + `.claude/agents/*.md`
+
+## Dynamic Coding Standards
+
+The template includes a dynamic coding standards loader that resolves language-specific rules at session start.
+
+### How It Works
+1. **Step 0** in the dispatch loop checks if `planning-artifacts/coding-standards-resolved.md` exists and is current
+2. The loader skill (`.claude/skills/coding-standards.md`) detects the project stack from manifests and file extensions
+3. Sources are resolved from `coding-standards-sources.yaml` — a registry mapping languages to rule sources
+4. Rules merge by trust priority: `override` (local) > `verified` (team-vetted) > `community` (external)
+5. Output: full resolved standards + a compressed summary (≤400 tokens) that survives context compaction
+
+### Adding Standards for Your Stack
+- Edit `coding-standards-sources.yaml` to add language entries
+- Place project-specific overrides in `.claude/skills/overrides/{language}.md`
+- Cache remote sources in `.claude/standards-cache/{language}/` (fetched by researcher agent or manually)
+
+### Offline-Capable
+The loader never fetches remote URLs directly. Remote sources are cached externally, keeping the system offline-capable after initial setup.
 
 ## Architectural Decisions Stress-Tested
 
@@ -406,6 +436,8 @@ Reliable multi-session delivery requires structured context, not just model capa
 - `CLAUDE.md`
 - `.claude/agents/`
 - `.claude/skills/`
+- `.claude/skills/overrides/`
+- `coding-standards-sources.yaml`
 - `planning-artifacts/`
 - `implementation-artifacts/`
 
