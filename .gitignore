@@ -30,8 +30,7 @@ dist/
 _bmad/
 _bmad-output/
 .agents/
-.claude/
-
+internal_project_documentation/
 
 # OS Files
 .DS_Store
