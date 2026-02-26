@@ -1,0 +1,16 @@
+[
+  {
+    "id": "F-000",
+    "title": "Template Seed Feature",
+    "phase": "DRAFT",
+    "spec_overview": "planning-artifacts/spec-F-000-template-seed-feature-overview.md",
+    "tasks": [],
+    "verified": false,
+    "tier": "MODERATE",
+    "token_budget": 8000,
+    "token_spent": 0,
+    "entropy_score": 0,
+    "assertions_total": 0,
+    "assertions_passing": 0
+  }
+]

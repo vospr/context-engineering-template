@@ -712,9 +712,31 @@ A task is **NOT DONE** unless ALL of these conditions are met:
 
 1. **Every assertion ID** from the spec packet appears in the results. Missing assertion = NOT DONE.
 2. **Every result is PASS.** Any FAIL result = NOT DONE.
-3. **Evidence is specific.** Results without file:line references are invalid.
+3. **Evidence is specific.** Results without a concrete file locator (`{file}:{line}` for code or `path.md#Heading` for docs) are invalid.
 
 If an implementer reports partial results (e.g., A1 and A2 but not A3), the task remains ACTIVE regardless of whether A1 and A2 are PASS.
+
+### Documentation-Only File Scope Guidance
+
+For markdown-first and zero-runtime tasks, some assertions target documentation files (for example `.claude/skills/*.md`) where executable code line evidence is not meaningful. In these cases, evidence MUST still be specific and reproducible.
+
+Use one of these evidence forms:
+
+1. **Section-presence evidence:** `path/to/file.md#Heading Text` using the exact markdown heading.
+2. **Pattern-match evidence:** `{file}:{line}` with the matched phrase shown in parentheses.
+
+Examples:
+
+```text
+- A1: PASS - .claude/skills/spec-protocol.md#Controlled Vocabulary (section present)
+- A2: PASS - .claude/skills/spec-protocol.md:776 (contains "token_budget")
+```
+
+Rules:
+
+- Documentation-only evidence MUST name the exact file and either an exact markdown heading anchor (`path.md#Heading`) or a concrete matched phrase with line evidence.
+- Vague evidence such as "docs updated" or "section exists somewhere" is invalid.
+- If a referenced documentation file does not exist, the assertion MUST be reported as FAIL with expected vs actual details.
 
 ### Completion Flow
 
@@ -773,7 +795,7 @@ Each entry MUST contain these fields in this exact order:
 
 #### Slice 4 Extended Fields (Optional)
 
-When metrics tracking is active, the following fields MAY be added to feature tracker entries:
+When metrics tracking is active, the following fields MUST be present in each feature tracker entry:
 
 | Field | Type | Description |
 |-------|------|-------------|
