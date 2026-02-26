@@ -5,6 +5,7 @@ A lightweight, project-agnostic template that turns Claude Code into a context-e
 ## Content
 
 - [What Is This?](#what-is-this)
+- [Who Is This For?](#who-is-this-for)
 - [Project Brief](#project-brief)
 - [Quick Start](#quick-start)
 - [Architecture](#architecture)
@@ -31,6 +32,13 @@ It provides a practical operating model where:
 - **Skills** provide reusable knowledge loaded on demand
 - **Files** act as durable external memory across context compaction
 - **Git** provides lineage, checkpoints, and recovery
+
+## Who Is This For?
+
+- **Engineers:** run scoped work in repeatable loops (spec -> implement -> review -> validate) without losing context across sessions.
+- **QA:** make verification first-class (assertions, quality gates, CI evidence) even when the “system” is mostly documentation and workflows.
+- **DevOps:** treat CI as the enforcement surface for quality gates and artifact publishing.
+- **PM/Analysts:** keep planning artifacts durable and traceable (feature tracker, specs, decisions), reducing “lost context” between iterations.
 
 ## Project Brief
 
@@ -95,6 +103,14 @@ rm -rf .git
 git init
 ```
 
+**PowerShell equivalent (Windows):**
+```powershell
+git clone https://github.com/vospr/context-engineering-template.git my-project
+cd my-project
+Remove-Item -Recurse -Force .git
+git init
+```
+
 ### 2. Customize placeholder skills (Required)
 
 Customize these files for your stack:
@@ -105,7 +121,7 @@ Customize these files for your stack:
 .claude/skills/architecture-principles.md
 ```
 
-> **Note:** `coding-standards.md` is no longer a placeholder — it is a dynamic loader skill that resolves standards from `coding-standards-sources.yaml`. See [Dynamic Coding Standards](#dynamic-coding-standards).
+> **Note:** [.claude/skills/coding-standards.md](.claude/skills/coding-standards.md) is no longer a placeholder - it is a dynamic loader skill that resolves standards from [coding-standards-sources.yaml](coding-standards-sources.yaml). See [Dynamic Coding Standards](#dynamic-coding-standards).
 
 Validation check:
 
@@ -202,7 +218,7 @@ SDD is an external, verifiable, decomposable definition of done that survives co
 
 ### Dispatch Integration (SDD Mode)
 
-- SDD activates when `spec-protocol.md` is present
+- SDD activates when [.claude/skills/spec-protocol.md](.claude/skills/spec-protocol.md) is present
 - Dispatch loop adds spec-aware routing (`spec_tier`) on top of model routing
 - Planner can be auto-dispatched to spec next unverified feature when task queue is empty
 - `NEEDS_RESPEC` feedback triggers planner re-spec of affected subtree
@@ -211,7 +227,7 @@ SDD is an external, verifiable, decomposable definition of done that survives co
 
 - Spec packets are embedded inline in task descriptions (no extra read hops for execution)
 - Spec overviews are flat files in `planning-artifacts/` with `spec-F-{NNN}-{name}-overview.md` naming
-- Feature progress state is tracked in `planning-artifacts/feature-tracker.json`
+- Feature progress state is tracked in [planning-artifacts/](planning-artifacts/) as `feature-tracker.json` (generated/optional artifact)
 
 ## How It Works
 
@@ -240,7 +256,7 @@ SDD is an external, verifiable, decomposable definition of done that survives co
 
 ## Adding Agents
 
-Add a new `.md` file in `.claude/agents/` following `_agent-template.md`. The Main Agent discovers agents by directory scan.
+Add a new `.md` file in [.claude/agents/](.claude/agents/) following [.claude/agents/_agent-template.md](.claude/agents/_agent-template.md). The Main Agent discovers agents by directory scan.
 
 ## Project Structure
 
@@ -355,7 +371,7 @@ How project state is persisted outside the context window - `planning-artifacts/
 - **Git micro-commits as checkpoints** - `.claude/skills/git-workflow.md:34-41`
 - **Branch isolation - agents never work on main** - `CLAUDE.md:142`
 - **Knowledge base as persistent RAG cache** - `planning-artifacts/knowledge-base/` (version-controlled, survives sessions)
-- **Directory CLAUDE.md indexes as semantic maps** - `.claude/agents/CLAUDE.md`, `.claude/skills/CLAUDE.md`, `planning-artifacts/CLAUDE.md`
+- **Directory CLAUDE.md indexes as semantic maps** - optional convention under [.claude/agents/](.claude/agents/), [.claude/skills/](.claude/skills/), and [planning-artifacts/](planning-artifacts/)
 
 ### Context Retrieval: Read Current State Each Cycle
 
@@ -401,16 +417,16 @@ How project state is persisted outside the context window - `planning-artifacts/
 The template includes a dynamic coding standards loader that resolves language-specific rules at session start.
 
 ### How It Works
-1. **Step 0** in the dispatch loop checks if `planning-artifacts/coding-standards-resolved.md` exists and is current
-2. The loader skill (`.claude/skills/coding-standards.md`) detects the project stack from manifests and file extensions
-3. Sources are resolved from `coding-standards-sources.yaml` — a registry mapping languages to rule sources
+1. **Step 0** in the dispatch loop checks if [planning-artifacts/](planning-artifacts/) contains `coding-standards-resolved.md` (generated/optional artifact) and that it is current
+2. The loader skill ([.claude/skills/coding-standards.md](.claude/skills/coding-standards.md)) detects the project stack from manifests and file extensions
+3. Sources are resolved from [coding-standards-sources.yaml](coding-standards-sources.yaml) - a registry mapping languages to rule sources
 4. Rules merge by trust priority: `override` (local) > `verified` (team-vetted) > `community` (external)
 5. Output: full resolved standards + a compressed summary (≤400 tokens) that survives context compaction
 
 ### Adding Standards for Your Stack
-- Edit `coding-standards-sources.yaml` to add language entries
-- Place project-specific overrides in `.claude/skills/overrides/{language}.md`
-- Cache remote sources in `.claude/standards-cache/{language}/` (fetched by researcher agent or manually)
+- Edit [coding-standards-sources.yaml](coding-standards-sources.yaml) to add language entries
+- Place project-specific overrides in [.claude/skills/overrides/](.claude/skills/overrides/) (`{language}.md`)
+- Cache remote sources under [.claude/](.claude/) at `standards-cache/{language}/` (generated/optional path, fetched by researcher agent or manually)
 
 ### Offline-Capable
 The loader never fetches remote URLs directly. Remote sources are cached externally, keeping the system offline-capable after initial setup.
@@ -433,13 +449,13 @@ Reliable multi-session delivery requires structured context, not just model capa
 
 ## Resources
 
-- `CLAUDE.md`
-- `.claude/agents/`
-- `.claude/skills/`
-- `.claude/skills/overrides/`
-- `coding-standards-sources.yaml`
-- `planning-artifacts/`
-- `implementation-artifacts/`
+- [CLAUDE.md](CLAUDE.md)
+- [.claude/agents/](.claude/agents/)
+- [.claude/skills/](.claude/skills/)
+- [.claude/skills/overrides/](.claude/skills/overrides/)
+- [coding-standards-sources.yaml](coding-standards-sources.yaml)
+- [planning-artifacts/](planning-artifacts/)
+- [implementation-artifacts/](implementation-artifacts/)
 
 ## License
 
