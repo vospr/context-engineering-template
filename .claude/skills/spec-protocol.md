@@ -806,6 +806,19 @@ When metrics tracking is active, the following fields MUST be present in each fe
 | `assertions_total` | number | Total assertion count across all tasks |
 | `assertions_passing` | number | Count of assertions with PASS status |
 
+#### Optional Envelope Form
+
+For toolchain compatibility, implementations MAY store feature entries in either of these equivalent shapes:
+
+1. **Array form (default):** top-level JSON array of feature entries.
+2. **Envelope form:** top-level object with metadata plus `features` array, where each feature entry follows the same required fields.
+
+Example envelope keys:
+
+- `schema_version`
+- `last_updated`
+- `features`
+
 ### Complete File Example
 
 ```json
