@@ -87,15 +87,16 @@ flowchart LR
 - Claude Code CLI installed
 
 ### 1. Clone or download template files
+**Option A: Download repository as ZIP to your machine**
 
-**Option A: Using degit (recommended)**
+**Option B: Using degit**
 ```bash
 npx degit vospr/context-engineering-template my-project
 cd my-project
 git init
 ```
 
-**Option B: Using git clone**
+**Option C: Using git clone**
 ```bash
 git clone https://github.com/vospr/context-engineering-template.git my-project
 cd my-project

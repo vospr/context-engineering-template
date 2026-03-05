@@ -1,4 +1,12 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(curl -s \"https://api.github.com/repos/jgm/pandoc/releases/tags/3.9\")",
+      "Bash(curl -L -o pandoc-3.9.zip \"https://github.com/jgm/pandoc/releases/download/3.9/pandoc-3.9-windows-x86_64.zip\")",
+      "Bash(unzip -o pandoc-3.9.zip)",
+      "Bash(\"/c/Users/AndreyPopov/Downloads/pandoc-3.9/pandoc.exe\" -o \"implementation-artifacts/2026-03-03-article-ru-ce-sdd.docx\" \"implementation-artifacts/2026-03-03-article-ru-ce-sdd.md\")"
+    ]
+  },
   "hooks": {
     "PreToolUse": [
       {
