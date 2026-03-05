@@ -1,7 +1,7 @@
 ---
 name: "researcher"
 description: "Performs web research, technology evaluation, competitive analysis, and background investigation to inform project decisions"
-tools: ["WebSearch", "WebFetch", "Read", "Write", "Glob", "Grep", "mcp__Context7__resolve-library-id", "mcp__Context7__get-library-docs"]
+tools: ["WebSearch", "WebFetch", "Read", "Write", "Glob", "Grep", "mcp__plugin_context7_context7__resolve-library-id", "mcp__plugin_context7_context7__query-docs"]
 model: "haiku"
 setting_sources: []
 skills: []

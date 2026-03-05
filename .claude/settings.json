@@ -1,10 +1,24 @@
 {
   "permissions": {
     "allow": [
-      "Bash(curl -s \"https://api.github.com/repos/jgm/pandoc/releases/tags/3.9\")",
-      "Bash(curl -L -o pandoc-3.9.zip \"https://github.com/jgm/pandoc/releases/download/3.9/pandoc-3.9-windows-x86_64.zip\")",
-      "Bash(unzip -o pandoc-3.9.zip)",
-      "Bash(\"/c/Users/AndreyPopov/Downloads/pandoc-3.9/pandoc.exe\" -o \"implementation-artifacts/2026-03-03-article-ru-ce-sdd.docx\" \"implementation-artifacts/2026-03-03-article-ru-ce-sdd.md\")"
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git branch:*)",
+      "Bash(git checkout -b *)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git merge:*)",
+      "Bash(ls:*)",
+      "Bash(mkdir:*)",
+      "Bash(find:*)",
+      "Bash(wc:*)"
+    ],
+    "deny": [
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(rm -rf /*)"
     ]
   },
   "hooks": {
@@ -15,6 +29,15 @@
           {
             "type": "command",
             "command": "bash -c 'if echo \"$TOOL_INPUT\" | grep -qiE \"git\\s+(add|commit|push)\" && echo \"$TOOL_INPUT\" | grep -qiE \"(\\.env|credentials|secret|password|api.?key|token|private.?key)\"; then echo \"BLOCK: Potential secret in git operation. Review staged files for sensitive data.\"; exit 1; fi; exit 0'"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'if echo \"$TOOL_INPUT\" | grep -qiE \"git\\s+(commit|push).*\\b(main|master)\\b\" || echo \"$TOOL_INPUT\" | grep -qiE \"git\\s+checkout\\s+(main|master)\\s*&&\\s*git\\s+commit\"; then echo \"BLOCK: Direct commit/push to main/master branch. Use a feature branch.\"; exit 1; fi; exit 0'"
           }
         ]
       }
