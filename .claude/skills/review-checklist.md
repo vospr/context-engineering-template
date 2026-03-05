@@ -1,13 +1,13 @@
 # Code Review Checklist
 
-> **[PLACEHOLDER]** — Customize severity thresholds and automated checks for your project.
+> Customize severity thresholds and automated checks for your project.
 
 ## Automated Checks (Run Before Manual Review)
-<!-- Replace with your project's commands -->
-- [ ] Linter passes: `{e.g., npm run lint}`
-- [ ] Type checker passes: `{e.g., npx tsc --noEmit}`
-- [ ] Tests pass: `{e.g., npm test}`
-- [ ] Build succeeds: `{e.g., npm run build}`
+<!-- Defaults: npm-based. Replace with your project's actual commands. -->
+- [ ] Linter passes: `npm run lint` {e.g., npm run lint, ruff check, golangci-lint run}
+- [ ] Type checker passes: `npx tsc --noEmit` {e.g., npx tsc --noEmit, mypy src, go vet ./...}
+- [ ] Tests pass: `npm test` {e.g., npm test, pytest, go test ./...}
+- [ ] Build succeeds: `npm run build` {e.g., npm run build, python -m build, go build ./...}
 
 ## Code Quality Checklist
 

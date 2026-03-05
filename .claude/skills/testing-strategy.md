@@ -1,34 +1,34 @@
 # Testing Strategy
 
-> **[PLACEHOLDER]** — Customize this file for your project's test framework and conventions.
+> Customize this file for your project's test framework and conventions.
 
 ## Test Framework
-<!-- Replace with your project's test setup -->
-- **Framework:** {e.g., Jest, Pytest, Go testing, Cargo test}
-- **Assertion library:** {e.g., built-in, Chai, assertpy}
-- **Mocking:** {e.g., jest.mock, unittest.mock, testify/mock}
+<!-- Defaults: Node.js/TypeScript stack. Adjust for your stack. -->
+- **Framework:** Jest {e.g., Jest, Vitest, Pytest, Go testing, Cargo test}
+- **Assertion library:** built-in (Jest expect) {e.g., built-in, Chai, assertpy}
+- **Mocking:** jest.mock {e.g., jest.mock, unittest.mock, testify/mock}
 
 ## Test Commands
-<!-- Replace with actual commands -->
+<!-- Defaults: npm-based. Replace with your project's actual commands. -->
 ```bash
 # Unit tests
-{e.g., npm test, pytest tests/unit, go test ./...}
+npm test {e.g., npm test, pytest tests/unit, go test ./...}
 
 # Integration tests
-{e.g., npm run test:integration, pytest tests/integration}
+npm run test:integration {e.g., npm run test:integration, pytest tests/integration}
 
 # End-to-end tests
-{e.g., npm run test:e2e, playwright test}
+npx playwright test {e.g., npm run test:e2e, playwright test}
 
 # Coverage report
-{e.g., npm run test:coverage, pytest --cov=src}
+npm run test:coverage {e.g., npm run test:coverage, pytest --cov=src}
 
 # Single test file
-{e.g., npx jest path/to/test, pytest path/to/test.py}
+npx jest path/to/test {e.g., npx jest path/to/test, pytest path/to/test.py}
 ```
 
 ## Test Organization
-<!-- Replace with your structure -->
+<!-- Defaults: standard layout. Adjust paths for your project. -->
 ```
 tests/
   unit/          # Fast, isolated, no external dependencies
@@ -38,10 +38,10 @@ tests/
 ```
 
 ## Naming Conventions
-<!-- Replace with your conventions -->
-- **Test files:** `{e.g., *.test.ts, test_*.py, *_test.go}`
-- **Test names:** `{e.g., "should {behavior} when {condition}"}`
-- **Describe blocks:** `{e.g., describe('{ComponentName}', ...)}`
+<!-- Defaults: TypeScript/Jest conventions. -->
+- **Test files:** `*.test.ts` {e.g., *.test.ts, test_*.py, *_test.go}
+- **Test names:** `"should {behavior} when {condition}"` {e.g., "should return 404 when user not found"}
+- **Describe blocks:** `describe('{ComponentName}', ...)` {e.g., describe('UserService', ...)}
 
 ## Mocking Strategy
 - Mock external services (APIs, databases) in unit tests
@@ -50,19 +50,19 @@ tests/
 - Prefer dependency injection over monkey-patching
 
 ## Coverage Requirements
-<!-- Set your thresholds -->
-- **Minimum coverage:** {e.g., 80%}
-- **Critical paths:** {e.g., 100% for auth, payment}
-- **New code:** {e.g., must include tests}
+<!-- Defaults: industry-standard thresholds. Adjust for your risk tolerance. -->
+- **Minimum coverage:** 80% {e.g., 80%, 70%, 90%}
+- **Critical paths:** 100% for auth, payment {e.g., 100% for auth, payment, data mutations}
+- **New code:** must include tests {e.g., must include tests, no exceptions}
 
 ## CI/CD Integration
-<!-- Replace with your CI setup -->
-- Tests run on: {e.g., every push, PR only}
-- Pipeline: {e.g., lint → typecheck → unit → integration → e2e}
-- Blocking: {e.g., any failure blocks merge}
+<!-- Defaults: PR-gated pipeline. Adjust for your CI setup. -->
+- Tests run on: every PR {e.g., every push, PR only, nightly}
+- Pipeline: lint → typecheck → unit → integration → e2e {e.g., lint → typecheck → unit → integration → e2e}
+- Blocking: any failure blocks merge {e.g., any failure blocks merge, only critical}
 
 ## Customization Instructions
-1. Replace all `{placeholder}` values with your project specifics
+1. Replace defaults above with your project's actual commands and tools
 2. Add project-specific test patterns or utilities
 3. Remove test types you don't use
 4. Keep total under 80 lines
