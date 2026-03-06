@@ -72,6 +72,7 @@ For implementation tasks requiring quality assurance:
 1. Dispatch implementer → writes code + implementation artifact
 2. Dispatch reviewer → reads code, provides structured feedback
 3. If NEEDS_CHANGES: dispatch implementer with feedback → re-review
+   - Exception: if all issues are MINOR severity only, implementer may self-correct in one pass without triggering a full re-review cycle
 4. **Circuit breaker: Max 3 cycles.** After 3 NEEDS_CHANGES → mark BLOCKED, escalate to user
 
 ### Pattern 3: Parallel Fan-Out

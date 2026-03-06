@@ -65,9 +65,24 @@ When dispatched with `mode=assertion-execution` for a task with an embedded spec
 
 1. Read the spec packet from the task description (between `# --- SPEC ---` delimiters)
 2. Read the implementer's evidence report (Section 11 format)
-3. For each assertion: navigate to the claimed file:line, verify the observable matches the assertion's positive/negative claim
+3. For each assertion: navigate to the claimed file:line, verify the observable matches the assertion's positive/negative claim using the appropriate verification type (see below)
 4. Compare tester finding against implementer claim
 5. Write assertion execution report to implementation-artifacts/
+
+### Verification Types
+
+Apply the appropriate type when checking each assertion. Running the code is stronger evidence than reading it — prefer executable types when the assertion targets runtime behavior.
+
+| Type | When to Use | Evidence Format |
+|------|-------------|-----------------|
+| `exit_code` | Assertion targets a command or test suite | `tests/health.test.js (exit code 0, 8 passed)` |
+| `http_status` | Assertion targets an HTTP endpoint | `src/app.js:8 (GET /health → 200 OK confirmed via curl/supertest)` |
+| `file_exists` | Assertion targets presence of a file | `.gitignore (file present, 6 lines)` |
+| `file_contains` | Assertion targets a pattern/string in a file | `.gitignore:3 (contains ".env*" pattern)` |
+| `command_output` | Assertion targets stdout/stderr of a command | `package.json scripts (npm test output: "8 passed, 0 failed")` |
+| `code_inspection` | Assertion targets code structure with no runtime path | `src/app.js:12 (createApp() has no listen() call — confirmed by inspection)` |
+
+If the assertion does not specify a type, default to `code_inspection`. If an assertion references an endpoint or command, `http_status` or `exit_code` is required — code inspection alone is insufficient for runtime behavior claims.
 
 ### Output
 
