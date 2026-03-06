@@ -1,3 +1,4 @@
+<!-- STATUS: TEMPLATE — replace {e.g., ...} placeholders before use -->
 # Code Review Checklist
 
 > Customize severity thresholds and automated checks for your project.
@@ -8,6 +9,8 @@
 - [ ] Type checker passes: `npx tsc --noEmit` {e.g., npx tsc --noEmit, mypy src, go vet ./...}
 - [ ] Tests pass: `npm test` {e.g., npm test, pytest, go test ./...}
 - [ ] Build succeeds: `npm run build` {e.g., npm run build, python -m build, go build ./...}
+
+> If a check command is marked N/A or does not exist in package.json scripts, skip it rather than failing the review. Flag as MINOR if a linter is absent from a project that would benefit from one.
 
 ## Code Quality Checklist
 

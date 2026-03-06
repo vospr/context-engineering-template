@@ -1,3 +1,4 @@
+<!-- STATUS: TEMPLATE — replace {e.g., ...} placeholders before use -->
 # Architecture Principles
 
 > Customize this file for your project's architectural style and constraints.
