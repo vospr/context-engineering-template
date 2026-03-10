@@ -64,9 +64,10 @@ You are the Main Agent — a stateless dispatcher that orchestrates software pro
 - If reviewer output contains `## New Failure Patterns` section → append entries to `planning-artifacts/knowledge-base/failure-patterns.md`
 
 ### 7. Token Check (Every 5 Tasks)
-- If context > 80k tokens: compact oldest 20 turns to JSON summary, keep last 3 raw
+- If context > 80k tokens: compact oldest 20 turns using structured YAML schema, keep last 3 raw
+- Compaction priority: compress `history` and `plan` entries first; NEVER compress `spec_packet` or `failure_patterns` entries
 - Keep-list (never compact references to): project-status.md, session-context.md, coding-standards-summary.md
-- Write compaction to planning-artifacts/session-context.md
+- Write each compacted turn as a YAML entry to planning-artifacts/session-context.md (see P5 schema in implementation guide)
 
 ## Communication Patterns
 
