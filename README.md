@@ -368,13 +368,13 @@ The template was designed through a comprehensive brainstorming session using th
 
 How project state is persisted outside the context window - `planning-artifacts/`, `implementation-artifacts/`, decisions log; Git = recoverable lineage
 
-- **Structured status as markdown at known paths** - `CLAUDE.md:83-101` (Folder Conventions)
-- **Git branch per feature for lineage** - `CLAUDE.md:141-146` (Git Workflow section)
-- **Two-phase artifacts: planning -> implementation** - `CLAUDE.md:85-87`
-- **Dual state architecture: Tasks for flow, Files for memory** - `.claude/agents/planner.md:4` + `CLAUDE.md:83-101`
-- **Decisions written to files immediately** - `CLAUDE.md:8,132-134` (Principle 3)
+- **Structured status as markdown at known paths** - `CLAUDE.md:91-109` (Folder Conventions)
+- **Git branch per feature for lineage** - `CLAUDE.md:149-154` (Git Workflow section)
+- **Two-phase artifacts: planning -> implementation** - `CLAUDE.md:93-95`
+- **Dual state architecture: Tasks for flow, Files for memory** - `.claude/agents/planner.md:22-24` + `CLAUDE.md:91-109`
+- **Decisions written to files immediately** - `CLAUDE.md:8,140-142` (Principle 3)
 - **Git micro-commits as checkpoints** - `.claude/skills/git-workflow.md:34-41`
-- **Branch isolation - agents never work on main** - `CLAUDE.md:142`
+- **Branch isolation - agents never work on main** - `CLAUDE.md:150`
 - **Knowledge base as persistent RAG cache** - `planning-artifacts/knowledge-base/` (version-controlled, survives sessions)
 - **Directory CLAUDE.md indexes as semantic maps** - optional convention under [.claude/agents/](.claude/agents/), [.claude/skills/](.claude/skills/), and [planning-artifacts/](planning-artifacts/)
 
@@ -390,31 +390,31 @@ How project state is persisted outside the context window - `planning-artifacts/
 ### Context Reduction: Token Budget + Compaction + RAG
 
 - **North Star: ship simple app in one 128k window** - `CLAUDE.md:9`
-- **Compaction at 80k with keep-list** - `CLAUDE.md:60-63,127-130`
-- **Proactive compaction every 5 tasks** - `CLAUDE.md:60-63`
-- **CLAUDE.md max 200 lines** - `CLAUDE.md:157-162`
-- **Complexity classification for model selection** - `CLAUDE.md:36-40`
+- **Compaction at 80k with keep-list** - `CLAUDE.md:66-70,134-136`
+- **Proactive compaction every 5 tasks** - `CLAUDE.md:66-70`
+- **CLAUDE.md max 200 lines** - `CLAUDE.md:165-169`
+- **Complexity classification for model selection** - `CLAUDE.md:39-43`
 - **Task decomposition rule: 3-5 files max per task** - `.claude/agents/planner.md:26-30`
 
 ### Context Isolation: Specialized Subagents + Parallel Execution
 
 - **Delegated Mechanism Selection** - `.claude/agents/_agent-template.md:4-8`
-- **Worker-Reviewer autonomous quality loop** - `CLAUDE.md:70-75`
-- **Parallel fan-out pattern** - `CLAUDE.md:77-81`
-- **Dependency analysis prevents parallel file conflicts** - `.claude/agents/planner.md:20-23`
+- **Worker-Reviewer autonomous quality loop** - `CLAUDE.md:77-83`
+- **Parallel fan-out pattern** - `CLAUDE.md:85-89`
+- **Dependency analysis prevents parallel file conflicts** - `.claude/agents/planner.md:136`
 
 ### Context Governance: Quality Gates + Security Controls
 
-- **Hooks as automated quality gates** - `.claude/settings.json:2-14`
-- **Circuit breaker: max 3 review cycles** - `CLAUDE.md:74-75,111-113`
-- **Structured feedback protocol** - `CLAUDE.md:105-109` + `.claude/agents/reviewer.md:23-49`
-- **MCP fallback chain** - `CLAUDE.md:152`
-- **Secret leak defense layers** - `.gitignore:1-11` + `.claude/settings.json:3-12`
+- **Hooks as automated quality gates** - `.claude/settings.json:24-44`
+- **Circuit breaker: max 3 review cycles** - `CLAUDE.md:83,118-120`
+- **Structured feedback protocol** - `CLAUDE.md:111-116` + `.claude/agents/reviewer.md:23-49`
+- **MCP fallback chain** - `CLAUDE.md:160`
+- **Secret leak defense layers** - `.gitignore:1-11` + `.claude/settings.json:30-33`
 
 ### Context Orchestration: Stateless Dispatcher Loop
 
 - **Main Agent dispatches all stages** - `CLAUDE.md:7`
-- **One universal dispatch pattern** - `CLAUDE.md:12-63`
+- **One universal dispatch pattern** - `CLAUDE.md:12-70`
 - **Two-level split: Main Agent rules vs Subagent rules** - `CLAUDE.md` + `.claude/agents/*.md`
 
 ## Dynamic Coding Standards
