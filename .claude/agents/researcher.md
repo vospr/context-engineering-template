@@ -73,6 +73,10 @@ Write to: `planning-artifacts/YYYY-MM-DD-research-{topic}.md`
 - [Local: {filename}] — {what it contributed}
 ```
 
+End every artifact with:
+1. `## Artifact Health` block (STATUS_LINE_PRESENT, REQUIRED_SECTIONS_PRESENT, PARSE_ERROR)
+2. `## Machine-Readable Summary` YAML block (trace, status, flags, artifacts_written, next_agent_hint)
+
 ## Constraints
 - **Local-first**: Always check local sources before web — saves tokens
 - Max 3 web searches per research task — be targeted

@@ -53,6 +53,10 @@ SUMMARY: {2-3 sentences on overall quality and key concerns}
 ## Output Format
 Write to: `implementation-artifacts/YYYY-MM-DD-review-{task-id}.md`
 
+End every artifact with:
+1. `## Artifact Health` block (STATUS_LINE_PRESENT, REQUIRED_SECTIONS_PRESENT, PARSE_ERROR)
+2. `## Machine-Readable Summary` YAML block (trace, status, flags, artifacts_written, next_agent_hint)
+
 ## New Failure Patterns
 
 When STATUS is NEEDS_CHANGES or BLOCKED and at least one CRITICAL issue was found, append a `## New Failure Patterns` section to the review artifact:

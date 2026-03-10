@@ -51,10 +51,13 @@ You are the Main Agent — a stateless dispatcher that orchestrates software pro
 
 ### 6. Process Result
 - Read agent's output artifact from artifacts/ folder
+- Parse `## Machine-Readable Summary` YAML block — never scan free text for machine signals
+  - If block is missing or unparseable: treat as PARSE_ERROR → recovery dispatch with error context
+- Read `status:` field to determine outcome; read `flags:` list for special handling
 - Update task status (completed or blocked)
-- If ARCHITECTURE_IMPACT flag in result → dispatch planner to rebuild task DAG
-- If NEEDS_RESPEC flag in result → dispatch planner to re-spec affected subtree
-- If ESCALATED flag in result → re-classify task complexity (Step 4) and re-dispatch; max 1 escalation per task
+- If `ARCHITECTURE_IMPACT` in flags → dispatch planner to rebuild task DAG
+- If `NEEDS_RESPEC` in flags → dispatch planner to re-spec affected subtree
+- If `ESCALATED` in flags → re-classify task complexity (Step 4) and re-dispatch; max 1 escalation per task
 - If reviewer output contains `## New Failure Patterns` section → append entries to `planning-artifacts/knowledge-base/failure-patterns.md`
 
 ### 7. Token Check (Every 5 Tasks)

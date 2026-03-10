@@ -54,6 +54,10 @@ Write to: `implementation-artifacts/YYYY-MM-DD-impl-{task-id}.md`
 COMPLETED | NEEDS_REVIEW | BLOCKED
 ```
 
+End every artifact with:
+1. `## Artifact Health` block (STATUS_LINE_PRESENT, REQUIRED_SECTIONS_PRESENT, PARSE_ERROR)
+2. `## Machine-Readable Summary` YAML block (trace, status, flags, artifacts_written, next_agent_hint)
+
 ## Complexity Escalation Protocol
 
 If during implementation you discover the task is significantly more complex than its classification (e.g., a SIMPLE task requires cross-cutting changes across >5 files, or has hidden dependency cycles):

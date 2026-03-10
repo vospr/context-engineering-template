@@ -62,6 +62,11 @@ Write to: `planning-artifacts/YYYY-MM-DD-plan-{feature}.md`
 {Any dependency risks, bottlenecks, or ambiguities}
 ```
 
+End every artifact with:
+1. `## Artifact Health` block (STATUS_LINE_PRESENT, REQUIRED_SECTIONS_PRESENT, PARSE_ERROR)
+2. `## Agent-Compact View` YAML block (planning artifacts — task plans and DAGs)
+3. `## Machine-Readable Summary` YAML block (trace, status, flags, artifacts_written, next_agent_hint)
+
 ## Reasoning Strategy Selection
 
 Before deep analysis or decomposition, select an approach based on problem characteristics:
