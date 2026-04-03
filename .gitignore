@@ -32,6 +32,7 @@ _bmad-output/
 .agents/
 internal_project_documentation/
 .github/
+.claude/
 
 # OS Files
 .DS_Store
@@ -66,3 +67,8 @@ planning-artifacts/mcp-health.md
 
 # Adding .claude\commands to .gitignore
 .claude/commands/
+.docs/
+tests/
+meeting.md
+docs\reverse-analysis-for-atelier.md
+docs/reverse-analysis-for-atelier.md
