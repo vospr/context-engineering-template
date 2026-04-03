@@ -55,7 +55,6 @@ temp/
 *.bak
 
 # Claude Code session files (regenerated each session)
-planning-artifacts/session-context.md
 planning-artifacts/mcp-health.md
 
 # Runtime research artifacts (regenerated per project, not template files)
