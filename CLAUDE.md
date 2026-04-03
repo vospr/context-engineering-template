@@ -16,6 +16,7 @@ You are the Main Agent — a stateless dispatcher that orchestrates software pro
 - Non-blocking: if loader fails, continue to Step 1
 
 ### 1. Read Current State
+- Read `planning-artifacts/pipeline-state.md` — if present and timestamp < 1hr, use as cache; otherwise derive from TaskList + git log + session-context.md, then write fresh cache
 - Check TaskList for pending/in_progress tasks and blocked dependencies
 - Read latest status from planning-artifacts/ or implementation-artifacts/
 
@@ -31,21 +32,24 @@ You are the Main Agent — a stateless dispatcher that orchestrates software pro
   - architect: system design, technology selection, architectural decisions
   - implementer: code writing, file creation/editing, test writing
   - reviewer: code review, quality checks, standards compliance
+  - blind-reviewer: adversarial diff-only review, no spec context (Medium/Large tasks)
   - tester: test execution, validation, bug identification
 - Score top 2 candidates on 3 criteria (task type / tool access / output format), each 0–2:
   - If top candidate scores ≥ 4/6 → dispatch
   - If top candidate scores < 4/6 → ask user to clarify, or dispatch planner to classify task first
 
-### 4. Classify Complexity & Select Model
-- SIMPLE (single file, lookup, straightforward) → override model: haiku
-- MODERATE (multi-file, standard work) → default model (from agent definition)
-- COMPLEX (architecture, deep analysis, ambiguous) → override model: opus
+### 4. Classify Complexity & Select Model (see `.claude/skills/pipeline-sizing.md`)
+- **Micro** (≤2 files, mechanical) → haiku, implementer only, skip review
+- **Small** (<3 files, bug fix) → sonnet, implementer → reviewer
+- **Medium** (2-4 steps, feature) → sonnet, planner → implementer → reviewer → tester
+- **Large** (5+ steps, new system) → opus for architect, full pipeline + blind reviewer
 - If SDD mode (`.claude/skills/spec-protocol.md` exists): also classify spec_tier per spec-protocol.md Section 6
 
 ### 5. Dispatch
+- **Pattern injection:** Before dispatch, read `failure-patterns.md` and `retro-lessons.md` from `planning-artifacts/knowledge-base/` (skip if either file is absent or empty). Inject top 5 patterns (by `Occurrence Count ≥ 3`, highest first) as `⚠️ WARNING:` (failures) or `✅ PROVEN:` (lessons) prefix in agent prompt. Max 500 tokens total.
 - Generate Trace ID: `TRACE-{YYYY-MM-DD}-{HHmm}-{3-word-slug}` (e.g., `TRACE-2026-02-21-1430-add-auth-endpoint`)
 - Use Task tool with matched agent
-- Pass: task description + relevant artifact file paths + Trace ID
+- Pass: task description + relevant artifact file paths + Trace ID + failure pattern warnings (if any)
 - **SDD Spec Views (when spec-protocol.md exists — strip irrelevant fields before dispatch):**
   - Planner: version + intent + title only (not assertions — planner authors them)
   - Implementer: full spec packet (all fields)
@@ -54,6 +58,7 @@ You are the Main Agent — a stateless dispatcher that orchestrates software pro
 
 ### 6. Process Result
 - Read agent's output artifact from artifacts/ folder
+- Update `planning-artifacts/pipeline-state.md` with current phase, task ID, timestamp, and agent (AFTER confirming output)
 - Parse `## Machine-Readable Summary` YAML block — never scan free text for machine signals
   - If block is missing or unparseable: treat as PARSE_ERROR → recovery dispatch with error context
 - Read `status:` field to determine outcome; read `flags:` list for special handling
@@ -78,9 +83,13 @@ Single agent completes task independently. Main Agent reads result.
 For implementation tasks requiring quality assurance:
 1. Dispatch implementer → writes code + implementation artifact
 2. Dispatch reviewer → reads code, provides structured feedback
-3. If NEEDS_CHANGES: dispatch implementer with feedback → re-review
+3. For Medium/Large tasks: also dispatch blind-reviewer (diff-only, no spec context) in parallel with reviewer
+4. If NEEDS_CHANGES: dispatch implementer with feedback → re-review
    - Exception: if all issues are MINOR severity only, implementer may self-correct in one pass without triggering a full re-review cycle
-4. **Circuit breaker: Max 3 cycles.** After 3 NEEDS_CHANGES → mark BLOCKED, escalate to user
+5. **Circuit breaker: Max 3 cycles.** After 3 NEEDS_CHANGES → mark BLOCKED, escalate to user
+
+### Pattern 2a: One-Phase-Per-Turn (Medium/Large only)
+On Medium/Large pipelines, perform exactly ONE phase transition per response. No silent chaining through multiple phases — user sees each step.
 
 ### Pattern 3: Parallel Fan-Out
 For multi-perspective analysis (e.g., final project review):
@@ -104,6 +113,7 @@ For multi-perspective analysis (e.g., final project review):
 
 ### State Files
 - `planning-artifacts/project-status.md` — Current phase, milestones, blockers
+- `planning-artifacts/pipeline-state.md` — Recovery cache (1hr TTL, derivable from TaskList + git)
 - `planning-artifacts/session-context.md` — Token compaction summaries
 - `planning-artifacts/mcp-health.md` — MCP server availability
 - `planning-artifacts/decisions.md` — All architectural/technology decisions log
@@ -163,8 +173,18 @@ SEVERITY per issue: CRITICAL | MAJOR | MINOR
 4. If resuming: report current progress, identify next unblocked task
 
 ## CLAUDE.md Size Constraint
-This file MUST NOT exceed 200 lines.
+This file MUST NOT exceed 300 lines.
 If new orchestration logic is needed:
 1. Extract to a skill in .claude/skills/
 2. Reference in relevant agent definitions
 3. Keep this file as the small, stable kernel
+
+### Multi-File Reading
+
+When reading files or gathering codebase context, use up to 30 haiku agents in parallel (model: "haiku"). Haiku agents should read files, search code, and return summaries — keeping the main context window lean.
+
+Do not read large files (>100 lines) directly in the main context when a haiku agent can read and summarize them instead. Use offset/limit parameters when only a specific section of a file is needed.
+
+### Avoid Duplicate Reads
+
+Before launching a haiku agent to read files, check if the content is already in conversation from a previous agent or direct read. If 2+ agents need the same file, have one agent read it and pass the content to others via prompt, or consolidate into a single agent. Track what's been read to avoid redundant round-trips.
