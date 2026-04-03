@@ -67,3 +67,4 @@ planning-artifacts/mcp-health.md
 # Adding .claude\commands to .gitignore
 .claude/commands/
 .docs/
+tests/
