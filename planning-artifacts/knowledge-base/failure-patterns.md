@@ -13,9 +13,12 @@ This file starts as a template and is appended over time when reviewers report r
 - **Pattern:** {short pattern label}
 - **Trigger:** {condition that causes the failure}
 - **Prevention:** {concrete mitigation and enforcement}
+- **Occurrence Count:** {number, starting at 1 — increment on each recurrence}
 - **Task Ref:** {task-id or n/a}
 - **First Detected:** {YYYY-MM-DD} ({trace-id or n/a})
 ```
+
+**Injection Rule:** Patterns with `Occurrence Count ≥ 3` are auto-injected as warnings into agent dispatch prompts (max 5 patterns, ≤500 tokens total).
 
 ## Seed Categories
 
@@ -23,6 +26,7 @@ This file starts as a template and is appended over time when reviewers report r
 - **Pattern:** Missing concrete evidence locator
 - **Trigger:** Assertion results use vague statements without `file:line` or `path.md#Heading`.
 - **Prevention:** Enforce Section 11 evidence format in `spec-protocol.md` before marking PASS.
+- **Occurrence Count:** 1
 - **Task Ref:** n/a
 - **First Detected:** n/a
 
@@ -30,6 +34,7 @@ This file starts as a template and is appended over time when reviewers report r
 - **Pattern:** Out-of-scope file modifications
 - **Trigger:** Implementer edits files not listed in `file_scope`.
 - **Prevention:** Reviewer validates touched files against `file_scope` and returns NEEDS_CHANGES on mismatch.
+- **Occurrence Count:** 1
 - **Task Ref:** n/a
 - **First Detected:** n/a
 
