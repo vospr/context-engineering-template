@@ -1,0 +1,70 @@
+# Secrets and Credentials
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+credentials.json
+credentials.yaml
+credentials.yml
+secrets/
+auth.json
+
+# IDE and Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Dependencies
+node_modules/
+venv/
+.venv/
+env/
+__pycache__/
+*.pyc
+target/
+build/
+dist/
+_bmad/
+_bmad-output/
+.agents/
+internal_project_documentation/
+.github/
+.claude/
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Test Coverage
+coverage/
+.nyc_output/
+htmlcov/
+.coverage
+
+# Temporary
+tmp/
+temp/
+*.tmp
+*.bak
+
+# Claude Code session files (regenerated each session)
+planning-artifacts/session-context.md
+planning-artifacts/mcp-health.md
+
+# Runtime research artifacts (regenerated per project, not template files)
+# NOTE: planning-artifacts/knowledge-base/ IS tracked — it's the persistent RAG cache
+# NOTE: planning-artifacts/CLAUDE.md IS tracked — it's the directory index
+
+# User-specific settings
+.claude/settings.local.json
+
+# Adding .claude\commands to .gitignore
+.claude/commands/
+.docs/

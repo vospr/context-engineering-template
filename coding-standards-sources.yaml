@@ -1,0 +1,25 @@
+# Coding Standards Sources Registry
+# Edit this file to control which coding standards apply per language/framework.
+# Sources resolve in priority order: override > verified > community
+
+defaults:
+  trust: community
+  priority: medium
+
+sources:
+  typescript:
+    - url: "https://raw.githubusercontent.com/PatrickJS/awesome-cursorrules/main/rules/typescript-nodejs-nextjs-app-cursorrules-prompt-file/.cursorrules"
+      trust: community
+    - local: ".claude/skills/overrides/typescript.md"
+      trust: override
+  python:
+    - url: "https://raw.githubusercontent.com/PatrickJS/awesome-cursorrules/main/rules/python-fastapi-best-practices-cursorrules-prompt-file/.cursorrules"
+      trust: community
+    - local: ".claude/skills/overrides/python.md"
+      trust: override
+  matlab:
+    - local: "stories/matlab-coding-standards.md"
+      trust: verified
+  go:
+    - url: "https://raw.githubusercontent.com/PatrickJS/awesome-cursorrules/main/rules/go-servemux-rest-api-cursorrules-prompt-file/.cursorrules"
+      trust: community
