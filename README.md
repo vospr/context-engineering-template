@@ -469,40 +469,47 @@ project-root/
 
 ## Context Engineering Framework
 
-This template implements six operational principles derived from context engineering research:
+This template implements seven operational principles derived from context engineering research:
 
 ### 1. Context Offloading
-Project state persists in files outside the context window - `planning-artifacts/`, `implementation-artifacts/`, and a decisions log. Git micro-commits act as checkpoints and provide recoverable lineage.
+Project state persists in files outside the context window — `planning-artifacts/`, `implementation-artifacts/`, decisions log, and `pipeline-state.md` (recovery cache with 1hr TTL, always derivable from TaskList + git). Git micro-commits and wave-commits act as checkpoints and provide recoverable lineage.
 
 ### 2. Context Retrieval
-The Main Agent reads only what it needs: TaskList + latest artifacts. Agents load skills on demand via `setting_sources` and `skills` fields. New agents add themselves by dropping a file in `.claude/agents/` - no configuration changes required.
+The Main Agent reads only what it needs: `pipeline-state.md` cache (or derives from TaskList + git if stale), then latest artifacts. Before each dispatch, knowledge injection reads `failure-patterns.md` and `retro-lessons.md` to inject recurring patterns (≥3 occurrences) into agent prompts. Agents load skills on demand via `setting_sources` and `skills` fields. New agents add themselves by dropping a file in `.claude/agents/`.
 
 ### 3. Context Reduction
-A <128k token budget keeps the Main Agent compact across entire projects. Complexity classification routes simple lookups to haiku and reserves expensive models for architecture decisions. Task decomposition caps each unit at 3-5 files. Proactive compaction at 80k summarizes older turns.
+A <128k token budget keeps the Main Agent compact across entire projects. 4-tier pipeline sizing (Micro/Small/Medium/Large) routes mechanical fixes to haiku and reserves opus for architecture decisions. Up to 30 haiku agents can read files in parallel, keeping the main context lean. Task decomposition caps each unit at 3-5 files. Proactive compaction at 80k summarizes older turns.
 
 ### 4. Context Isolation
-Six specialized agents run in separate contexts with only the tools they need. Parallel fan-out dispatches multiple agents on non-overlapping files. All implementation stays on feature branches, never main.
+Seven specialized agents run in separate contexts with only the tools they need. The blind reviewer operates under information asymmetry — it sees only the git diff, never the spec or intent, preventing anchoring bias. Parallel fan-out dispatches multiple agents on non-overlapping files. Wave invariants guarantee no intra-wave file overlap. All implementation stays on feature branches, never main.
 
 ### 5. Context Orchestration
-One universal dispatch pattern governs every project stage: read -> match agent -> classify complexity -> dispatch -> process result -> repeat. Three communication modes handle different scenarios (one-shot, worker-reviewer loop, parallel fan-out).
+One universal dispatch pattern governs every project stage: read -> match agent -> classify complexity (4-tier) -> dispatch -> process result -> repeat. Four communication modes handle different scenarios: one-shot, worker-reviewer loop (with parallel blind review for Medium/Large), one-phase-per-turn (user sees each wave), and parallel fan-out. Wave-based execution groups related tasks into atomic commit units.
 
 ### 6. Context Governance
-Reviewers follow a structured protocol: STATUS codes, numbered issues with severity ratings, and specific fix guidance for every finding. Circuit breaker caps worker-reviewer iterations at three cycles. Secret leak prevention operates in three layers: file exclusion, agent constraints, and automated hooks.
+Mechanical enforcement hooks block unauthorized writes ([enforce-paths.sh](.claude/hooks/enforce-paths.sh)), premature implementation ([enforce-sequencing.sh](.claude/hooks/enforce-sequencing.sh)), and warn on missing citations ([warn-dor-dod.sh](.claude/hooks/warn-dor-dod.sh)). Reviewers follow a structured protocol: STATUS codes, numbered issues with severity ratings, and specific fix guidance. The [blind reviewer](.claude/agents/blind-reviewer.md) provides adversarial review from a diff-only perspective. Circuit breaker caps worker-reviewer iterations at three cycles. Secret leak prevention operates in three layers: file exclusion, agent constraints, and automated hooks.
+
+### 7. Context Learning
+The system improves over time through dual knowledge injection. `failure-patterns.md` captures recurring mistakes — patterns reaching ≥3 occurrences are auto-injected as `WARNING:` into future agent prompts. `retro-lessons.md` captures what worked — patterns reaching ≥3 occurrences are injected as `PROVEN:` approaches. Reviewers and testers append new entries after each task. The knowledge base is persistent (survives compaction and session restarts) and version-controlled via git.
 
 Reference links:
 
-- `CLAUDE.md`
-- `.claude/agents/_agent-template.md`
-- `.claude/agents/planner.md`
-- `.claude/agents/researcher.md`
-- `.claude/agents/reviewer.md`
-- `.claude/settings.json`
-- `.claude/skills/git-workflow.md`
-- `.gitignore`
+- [CLAUDE.md](CLAUDE.md) — Dispatch loop kernel
+- [.claude/agents/](/.claude/agents/) — 7 specialized agents (including [blind-reviewer.md](.claude/agents/blind-reviewer.md))
+- [.claude/hooks/](.claude/hooks/) — 3 enforcement hooks
+- [.claude/skills/pipeline-sizing.md](.claude/skills/pipeline-sizing.md) — 4-tier model
+- [.claude/skills/wave-execution.md](.claude/skills/wave-execution.md) — Wave grouping rules
+- [.claude/skills/git-workflow.md](.claude/skills/git-workflow.md) — Dual commit strategy
+- [.claude/enforcement-config.json](.claude/enforcement-config.json) — Path allowlist
+- [.claude/settings.json](.claude/settings.json) — Hook registration
+- [planning-artifacts/knowledge-base/failure-patterns.md](planning-artifacts/knowledge-base/failure-patterns.md) — Failure learning
+- [planning-artifacts/knowledge-base/retro-lessons.md](planning-artifacts/knowledge-base/retro-lessons.md) — Positive learning
+- [planning-artifacts/pipeline-state.md](planning-artifacts/pipeline-state.md) — Recovery cache
+- [.gitignore](.gitignore) — Secret exclusion
 
 ## Idea Organization and Prioritization
 
-The template was designed through a comprehensive brainstorming session using three techniques (First Principles Thinking, Morphological Analysis, Chaos Engineering), producing 50 design contexts organized into six context engineering themes.
+The template was designed through a comprehensive brainstorming session using three techniques (First Principles Thinking, Morphological Analysis, Chaos Engineering), producing 50+ design contexts organized into seven context engineering themes.
 
 ### Context Offloading: File System as Externalized Memory
 
@@ -516,6 +523,7 @@ How project state is persisted outside the context window - `planning-artifacts/
 - **Git micro-commits as checkpoints** - `.claude/skills/git-workflow.md:34-41`
 - **Branch isolation - agents never work on main** - `CLAUDE.md:150`
 - **Knowledge base as persistent RAG cache** - `planning-artifacts/knowledge-base/` (version-controlled, survives sessions)
+- **Pipeline state as derivable recovery cache** - `planning-artifacts/pipeline-state.md` (1hr TTL, always reconstructable from TaskList + git log)
 - **Directory CLAUDE.md indexes as semantic maps** - optional convention under [.claude/agents/](.claude/agents/), [.claude/skills/](.claude/skills/), and [planning-artifacts/](planning-artifacts/)
 
 ### Context Retrieval: Read Current State Each Cycle
@@ -526,6 +534,8 @@ How project state is persisted outside the context window - `planning-artifacts/
 - **Graduated context loading via setting_sources + skills** - `.claude/agents/_agent-template.md:6-7`
 - **Self-discovering agent pool** - `CLAUDE.md:27-34`
 - **Local-first RAG priority chain** - `.claude/agents/researcher.md:21-41`
+- **Knowledge injection before dispatch** - `CLAUDE.md:49` (failure-patterns + retro-lessons auto-injected at ≥3 occurrences)
+- **Pipeline state cache-or-derive** - `CLAUDE.md:19` (read cache if fresh, derive from TaskList + git if stale)
 
 ### Context Reduction: Token Budget + Compaction + RAG
 
@@ -535,6 +545,8 @@ How project state is persisted outside the context window - `planning-artifacts/
 - **CLAUDE.md max 300 lines** - `CLAUDE.md:165-169`
 - **Complexity classification for model selection** - `CLAUDE.md:39-43`
 - **Task decomposition rule: 3-5 files max per task** - `.claude/agents/planner.md:26-30`
+- **Haiku parallel file reading** - `CLAUDE.md:174-180` (up to 30 haiku agents read files in parallel, main context stays lean)
+- **4-tier pipeline sizing** - `.claude/skills/pipeline-sizing.md` (Micro=haiku, Small/Medium=sonnet, Large=opus for architect)
 
 ### Context Isolation: Specialized Subagents + Parallel Execution
 
@@ -542,6 +554,8 @@ How project state is persisted outside the context window - `planning-artifacts/
 - **Worker-Reviewer autonomous quality loop** - `CLAUDE.md:77-83`
 - **Parallel fan-out pattern** - `CLAUDE.md:85-89`
 - **Dependency analysis prevents parallel file conflicts** - `.claude/agents/planner.md:136`
+- **Information asymmetry via blind reviewer** - `.claude/agents/blind-reviewer.md` (sees only diff, no spec/intent — prevents anchoring)
+- **Wave invariants enforce file isolation** - `.claude/skills/wave-execution.md` (no intra-wave file overlap)
 
 ### Context Governance: Quality Gates + Security Controls
 
@@ -558,6 +572,20 @@ How project state is persisted outside the context window - `planning-artifacts/
 - **Main Agent dispatches all stages** - `CLAUDE.md:7`
 - **One universal dispatch pattern** - `CLAUDE.md:12-70`
 - **Two-level split: Main Agent rules vs Subagent rules** - `CLAUDE.md` + `.claude/agents/*.md`
+- **One-phase-per-turn transparency** - `CLAUDE.md:91-92` (Medium/Large: one phase transition per response)
+- **Wave-based execution** - `.claude/skills/wave-execution.md` (group tasks into atomic commit units with 2 invariants)
+- **Four communication modes** - `CLAUDE.md:77-89` (one-shot, worker-reviewer + blind review, one-phase-per-turn, parallel fan-out)
+
+### Context Learning: Self-Improving Knowledge Base
+
+How the system compounds knowledge across sessions — learning from both failures and successes.
+
+- **Failure pattern tracking** - `planning-artifacts/knowledge-base/failure-patterns.md` (reviewers append CRITICAL findings)
+- **Positive lesson capture** - `planning-artifacts/knowledge-base/retro-lessons.md` (reviewers/testers append successful approaches)
+- **Dual injection at dispatch** - `CLAUDE.md:49` (patterns with ≥3 occurrences auto-injected as warnings or proven approaches, max 5 patterns, ≤500 tokens)
+- **SUSPICIOUS_CITATION detection** - `.claude/hooks/warn-dor-dod.sh` (cross-checks cited paths exist on disk)
+- **Persistent across compaction** - failure_patterns and retro_lessons are on the compaction never-compress list
+- **Version-controlled via git** - knowledge base survives session restarts and is recoverable from any commit
 
 ## Enforcement & Hardening
 
