@@ -20,6 +20,7 @@ A lightweight, project-agnostic template that turns Claude Code into a context-e
 - [Architectural Decisions Stress-Tested](#architectural-decisions-stress-tested)
 - [Why This Matters](#why-this-matters)
 - [Resources](#resources)
+- [Appendix: Avoiding "Dark Factory" Anti-Patterns](#appendix-avoiding-dark-factory-anti-patterns)
 - [License](#license)
 
 ## What Is This?
@@ -58,28 +59,53 @@ Primary purpose:
 
 ```mermaid
 flowchart LR
-    U[User Goal] --> M[Main Agent<br/>Orchestration Kernel]
+    U["User Goal"] --> M["Main Agent<br/>Orchestration Kernel"]
 
-    M --> R[R<br/>Researcher]
-    M --> P[P<br/>Planner]
-    M --> A[A<br/>Architect]
-    M --> I[I<br/>Implementer]
-    M --> RV[Rev<br/>Reviewer]
-    M --> BR[BR<br/>Blind Reviewer]
-    M --> T[T<br/>Tester]
+    M --> R["R: Researcher"]
+    M --> P["P: Planner"]
+    M --> A["A: Architect"]
+    M --> I["I: Implementer"]
+    M --> RV["Rev: Reviewer"]
+    M --> BR["BR: Blind Reviewer"]
+    M --> T["T: Tester"]
 
-    P --> S[Specs + Plan]
-    I --> X[Implementation]
-    RV --> Q[Quality Review]
-    T --> V[Validation]
+    P --> S["Specs + Wave Plan"]
+    I --> X["Implementation"]
+    RV --> Q["Quality Review"]
+    BR --> Q
+    T --> V["Validation"]
 
-    S --> O[Project Artifacts]
+    S --> O["Project Artifacts"]
     X --> O
     Q --> O
     V --> O
 
-    O --> G[Git Lineage + Recovery]
-    O --> M
+    O --> G["Git Lineage + Recovery"]
+
+    subgraph "Enforcement Layer"
+        EP["enforce-paths"]
+        ES["enforce-sequencing"]
+        DD["warn-dor-dod"]
+    end
+
+    I -.-> EP
+    M -.-> ES
+    RV -.-> DD
+    BR -.-> DD
+    T -.-> DD
+
+    subgraph "Knowledge Loop"
+        FP["failure-patterns"]
+        RL["retro-lessons"]
+        PS["pipeline-state"]
+    end
+
+    O --> FP
+    O --> RL
+    O --> PS
+    FP -.->|"inject warnings"| M
+    RL -.->|"inject proven"| M
+    PS -.->|"recovery cache"| M
 ```
 
 ## Quick Start
@@ -144,65 +170,164 @@ claude
 
 ## Architecture
 
+The pipeline adapts its shape to task complexity. Four tiers trigger different agent compositions, review strategies, and commit patterns — all passing through the same enforcement and knowledge layers.
+
 ```
 User Goal
-  -> Dispatch Loop classifies complexity + spec_tier
-  -> Planner authors spec (inline packet + feature overview)
-  -> Implementer executes against assertions
-  -> Post-task audit + Reviewer validation
-  -> Feature tracker updates continuity state
-  -> Next task dispatch
+  → Dispatch Loop classifies 4-tier complexity (Micro / Small / Medium / Large)
+  → Knowledge injection (failure-patterns + retro-lessons)
+  → Tier-appropriate agent pipeline executes
+  → Enforcement hooks validate at each step
+  → Knowledge base updated with new patterns
+  → pipeline-state.md checkpointed
+  → Next task / next wave
 ```
+
+### Micro Pipeline (≤2 files, mechanical — haiku)
 
 ```mermaid
-flowchart TD
-    U[User Goal]
-    M[Main Agent / Dispatch Loop<br/>Read -> Select -> Match -> Classify -> Dispatch -> Process]
-
-    U --> M
-
-    R["R: Researcher"]
-    P["P: Planner"]
-    A["A: Architect"]
-    I["I: Implementer"]
-    RV["Rev: Reviewer"]
-    T["T: Tester"]
-
-    M --> R
-    M --> P
-    M --> A
-    M --> I
-    M --> RV
-    M --> T
-
-    SP["Spec Packet (inline in task)"]
-    SO["Spec Overview (planning-artifacts/spec-F-*.md)"]
-    FT["Feature Tracker (planning-artifacts/feature-tracker.json)"]
-    IA["Implementation Artifacts"]
-    KB["Knowledge Base / Planning Artifacts"]
-    G["Git Lineage + Recovery"]
-
-    P --> SP
-    P --> SO
-    P --> FT
-
-    I --> IA
-    RV --> IA
-    T --> IA
-
-    M <--> FT
-    R <--> KB
-    P <--> KB
-    A <--> KB
-    RV <--> KB
-    T <--> KB
-
-    IA --> G
-    KB --> G
-    FT --> G
+flowchart LR
+    U["User Goal"] --> M["Dispatch Loop"]
+    M --> I["I: Implementer"]
+    I -.-> EP["enforce-paths"]
+    I --> CM["Commit [T-id]"]
+    CM --> G["Git"]
 ```
 
-**[R]**esearcher - **[P]**lanner - **[A]**rchitect - **[I]**mplementer - **[Rev]**iewer - **[T]**ester
+Fastest path. No planner, no review, no tests. Enforcement hooks still fire. Used for typo fixes, config tweaks, renames.
+
+### Small Pipeline (<3 files, bug fix — sonnet)
+
+```mermaid
+flowchart LR
+    U["User Goal"] --> M["Dispatch Loop<br/>classify: Small"]
+
+    M --> KI["Knowledge Injection<br/>failure-patterns + retro-lessons"]
+    KI --> I["I: Implementer"]
+    I --> EP["enforce-paths.sh"]
+    EP --> RV["Rev: Reviewer"]
+    RV --> DD["warn-dor-dod.sh"]
+
+    RV -->|"APPROVED"| CM["Commit [T-id]"]
+    RV -->|"NEEDS_CHANGES"| I
+    RV -->|"3x NEEDS_CHANGES"| BL["BLOCKED → User"]
+
+    CM --> G["Git"]
+```
+
+Adds review loop with circuit breaker. Knowledge injection warns about known failure patterns before implementation starts.
+
+### Medium Pipeline (2-4 steps, feature — sonnet)
+
+```mermaid
+flowchart LR
+    U["User Goal"] --> M["Dispatch Loop"]
+    M --> KI["Knowledge Injection"]
+    KI --> P["P: Planner"]
+    P --> WP["Wave Plan"]
+
+    subgraph "Each Wave"
+        I["I: Implementer"]
+        RV["Rev: Reviewer"]
+        BR["BR: Blind Reviewer"]
+        T["T: Tester"]
+        CM["Commit [W-id]"]
+
+        I --> RV
+        I --> BR
+        RV --> T
+        BR --> T
+        T -->|"PASS"| CM
+        T -->|"FAIL"| I
+    end
+
+    WP --> I
+    CM --> PS["pipeline-state"]
+    PS -->|"next wave"| I
+    PS -->|"done"| G["Git"]
+
+    I -.-> EP["enforce-paths"]
+    RV -.-> DD["warn-dor-dod"]
+    BR -.-> DD
+```
+
+Full pipeline with planning, parallel review (Reviewer + Blind Reviewer), testing, and wave-based commits. One phase per user turn — no silent chaining.
+
+### Large Pipeline (5+ steps, new system — opus + sonnet)
+
+```mermaid
+flowchart LR
+    U["User Goal"] --> M["Dispatch Loop"]
+    M --> KI["Knowledge Injection"]
+    KI --> A["A: Architect"]
+    A --> DEC["decisions.md"]
+    DEC --> P["P: Planner"]
+    P --> WP["Wave Plan"]
+
+    subgraph "Each Wave = ADR Step"
+        I["I: Implementer"]
+        RV["Rev: Reviewer"]
+        BR["BR: Blind Reviewer"]
+        T["T: Tester"]
+        CM["Commit [W-N]"]
+
+        I --> RV
+        I --> BR
+        RV --> T
+        BR --> T
+        T -->|"PASS"| CM
+        T -->|"FAIL"| I
+    end
+
+    WP --> I
+    CM --> PS["pipeline-state"]
+    PS -->|"next wave"| I
+    PS -->|"done"| FT["Feature Tracker"]
+    FT --> G["Git"]
+
+    I -.-> EP["enforce-paths"]
+    RV -.-> DD["warn-dor-dod"]
+    BR -.-> DD
+```
+
+Architect runs first (opus model) to produce ADRs before any code. Each ADR step becomes a wave. Full agent pool with session recovery — if session drops, next session resumes from the last completed wave.
+
+### Shared: Enforcement + Knowledge Layer (all tiers)
+
+```mermaid
+flowchart LR
+    subgraph "Enforcement"
+        EP["enforce-paths"]
+        ES["enforce-sequencing"]
+        DD["warn-dor-dod"]
+    end
+
+    subgraph "Knowledge"
+        FP["failure-patterns"]
+        RL["retro-lessons"]
+        PS["pipeline-state"]
+        DEC["decisions.md"]
+    end
+
+    subgraph "Recovery"
+        SR{"state fresh?"}
+        CACHE["Use cache"]
+        DERIVE["Derive from TaskList + git"]
+    end
+
+    EP -->|"Write/Edit"| BK["Block or Allow"]
+    ES -->|"Agent dispatch"| BK2["Block or Allow"]
+    DD -->|"SubagentStop"| WN["Advisory Warning"]
+
+    FP -.->|"inject at ≥3"| M["Dispatch Loop"]
+    RL -.->|"inject at ≥3"| M
+
+    SR -->|"< 1hr"| CACHE
+    SR -->|"stale"| DERIVE
+    DERIVE --> PS
+```
+
+**[R]**esearcher - **[P]**lanner - **[A]**rchitect - **[I]**mplementer - **[Rev]**iewer - **[BR]** Blind Reviewer - **[T]**ester
 
 ### Architectural Anchor
 
@@ -542,6 +667,95 @@ Reliable multi-session delivery requires structured context, not just model capa
 - [planning-artifacts/knowledge-base/](planning-artifacts/knowledge-base/) (failure-patterns + retro-lessons)
 - [implementation-artifacts/](implementation-artifacts/)
 - [tests/](tests/) (E2E test suite — `bash tests/test-runner.sh`)
+
+---
+
+## Appendix: Avoiding "Dark Factory" Anti-Patterns
+
+A **"dark factory"** is a fully autonomous agent pipeline that runs for hours without human checkpoints — producing plausible-looking but wrong results at scale. This template is designed to prevent that.
+
+#### Anti-Pattern 1: "Let it run overnight"
+
+**Problem:** Long-running autonomous execution drifts. After 20+ tasks, context compaction loses nuance, decisions compound errors, and the agent optimizes for completion metrics rather than correctness.
+
+**How the template prevents it:**
+- **One-phase-per-turn** (Medium/Large): User sees each wave before the next starts
+- **Circuit breaker**: 3 NEEDS_CHANGES → BLOCKED, forces human intervention
+- **Token budget**: Compaction at 80k preserves critical decisions but signals when sessions are getting long
+- **Cascade failure check**: >3 tasks BLOCKED simultaneously → full stop
+
+> **Rule of thumb:** If you can't review the output in 5 minutes, the task is too big for one dispatch.
+
+#### Anti-Pattern 2: "Skip the review, I trust the agent"
+
+**Problem:** Without review, implementers introduce subtle regressions, security holes, or scope violations that compound across tasks.
+
+**How the template prevents it:**
+- **Micro is the ONLY tier that skips review** — and it's limited to ≤2 files, mechanical changes
+- **Blind Reviewer** catches what you wouldn't think to look for (no anchoring on spec)
+- **DoR/DoD hook** warns when agents skip citing their sources
+- **Failure pattern injection**: Past mistakes auto-warn future agents
+
+> **Rule of thumb:** If you're tempted to classify as Micro to skip review, it's probably Small.
+
+#### Anti-Pattern 3: "One giant commit at the end"
+
+**Problem:** A 500-line commit with 15 files is unreviewable and unrollbackable. If anything is wrong, you revert everything or debug for hours.
+
+**How the template prevents it:**
+- **Wave commits** group related changes into reviewable units
+- **Wave invariants** prevent conflicting changes within a wave
+- **Git as fault tolerance**: Each wave commit is a checkpoint. Rollback one wave, not the whole feature.
+- **Micro-commits** for Small tasks create even finer recovery points
+
+> **Rule of thumb:** If a wave touches >5 files, it should be split into two waves.
+
+#### Anti-Pattern 4: "The agent knows best"
+
+**Problem:** Over-relying on agent self-assessment. Agents will report "all tests pass" when tests don't exist, or "APPROVED" when they skimmed the diff.
+
+**How the template prevents it:**
+- **Blind Reviewer** can't anchor on the spec — judges code on intrinsic quality
+- **SUSPICIOUS_CITATION** detection catches agents that name-drop file paths without reading them
+- **Tester is independent** — runs actual commands, reports actual output
+- **Evidence format** requires `file:line` references, not vague statements
+
+> **Rule of thumb:** Never trust a review that doesn't include specific file:line references.
+
+#### Anti-Pattern 5: "Reinventing patterns across sessions"
+
+**Problem:** Each new session starts from zero. The agent solves the same problems differently each time, doesn't learn from past failures, and doesn't reuse proven approaches.
+
+**How the template prevents it:**
+- **failure-patterns.md**: Recurring mistakes (3+ occurrences) auto-injected as warnings
+- **retro-lessons.md**: Successful approaches auto-injected as proven patterns
+- **Session recovery**: `pipeline-state.md` + TaskList + git log reconstruct state
+- **Decisions log**: `decisions.md` persists all architectural choices across sessions
+- **Knowledge base**: Persistent RAG cache survives context compaction and session restarts
+
+> **Rule of thumb:** If you solved a tricky problem, make sure the reviewer or tester captures it in retro-lessons. Your future self will thank you.
+
+---
+
+### Quick Reference: What Fires When
+
+| Component | Micro | Small | Medium | Large |
+|-----------|:-----:|:-----:|:------:|:-----:|
+| Planner | - | - | Yes | Yes |
+| Architect | - | - | - | Yes (opus) |
+| Implementer | Yes (haiku) | Yes (sonnet) | Yes (sonnet) | Yes (sonnet) |
+| Reviewer | - | Yes | Yes | Yes |
+| Blind Reviewer | - | - | Yes | Yes |
+| Tester | - | - | Yes | Yes |
+| enforce-paths.sh | Yes | Yes | Yes | Yes |
+| enforce-sequencing.sh | Bypass | Yes | Yes | Yes |
+| warn-dor-dod.sh | - | Yes | Yes | Yes |
+| Pattern injection | - | Yes | Yes | Yes |
+| Wave commits | - | - | Yes | Yes |
+| One-phase-per-turn | - | - | Yes | Yes |
+| Session recovery | - | - | Yes | Yes |
+
+---
 
 ## License
 
