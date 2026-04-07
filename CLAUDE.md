@@ -41,15 +41,29 @@ You are the Main Agent — a stateless dispatcher that orchestrates software pro
 ### 4. Classify Complexity & Select Model (see `.claude/skills/pipeline-sizing.md`)
 - **Micro** (≤2 files, mechanical) → haiku, implementer only, skip review
 - **Small** (<3 files, bug fix) → sonnet, implementer → reviewer
-- **Medium** (2-4 steps, feature) → sonnet, planner → implementer → reviewer → tester
+- **Medium** (2-4 steps, feature) → sonnet, planner → implementer → reviewer + blind-reviewer (parallel) → tester
 - **Large** (5+ steps, new system) → opus for architect, full pipeline + blind reviewer
 - If SDD mode (`.claude/skills/spec-protocol.md` exists): also classify spec_tier per spec-protocol.md Section 6
+
+### 4a. Step Sizing Gate (Medium/Large only)
+Before dispatching implementer, validate each step passes all 5 checks (see `.claude/skills/pipeline-sizing.md`):
+- Demoable? Context-bounded? Independently verifiable? Revert-cheap? Already small?
+- If any check fails → sub-slice the step before dispatch
+- If sub-slicing produces 5+ sub-steps → re-classify task as Large before dispatch (triggers architect + opus)
+
+### 4b. Research Pre-Flight (Medium/Large only)
+Before dispatching planner/architect, fan out up to 10 haiku scouts (model: "haiku") to:
+- Read all artifact files referenced in the task and return summaries (not raw content)
+- Search codebase for related patterns, existing implementations, and potential conflicts
+- Check `planning-artifacts/decisions.md` for relevant prior decisions
+Dispatch the real agent with scout summaries, NOT raw file contents. Saves 15-20k tokens per research-heavy task.
 
 ### 5. Dispatch
 - **Pattern injection:** Before dispatch, read `failure-patterns.md` and `retro-lessons.md` from `planning-artifacts/knowledge-base/` (skip if either file is absent or empty). Inject top 5 patterns (by `Occurrence Count ≥ 3`, highest first) as `⚠️ WARNING:` (failures) or `✅ PROVEN:` (lessons) prefix in agent prompt. Max 500 tokens total.
 - Generate Trace ID: `TRACE-{YYYY-MM-DD}-{HHmm}-{3-word-slug}` (e.g., `TRACE-2026-02-21-1430-add-auth-endpoint`)
 - Use Task tool with matched agent
 - Pass: task description + relevant artifact file paths + Trace ID + failure pattern warnings (if any)
+- **Max turns hint per tier:** Micro=5, Small=15, Medium=25, Large=40 (prevents agent spiraling)
 - **SDD Spec Views (when spec-protocol.md exists — strip irrelevant fields before dispatch):**
   - Planner: version + intent + title only (not assertions — planner authors them)
   - Implementer: full spec packet (all fields)
@@ -67,6 +81,23 @@ You are the Main Agent — a stateless dispatcher that orchestrates software pro
 - If `NEEDS_RESPEC` in flags → dispatch planner to re-spec affected subtree
 - If `ESCALATED` in flags → re-classify task complexity (Step 4) and re-dispatch; max 1 escalation per task
 - If reviewer output contains `## New Failure Patterns` section → append entries to `planning-artifacts/knowledge-base/failure-patterns.md`
+
+### 6a. Knowledge Extraction (Automatic)
+After each implementer/reviewer/tester/architect/planner dispatch completes:
+- The `extract-knowledge.sh` SubagentStop hook analyzes agent output for knowledge signals
+- If hook output contains `EXTRACT_KNOWLEDGE_SIGNAL`: dispatch a haiku agent to read the completed agent's artifact file and extract decisions, patterns, lessons, failures
+- Haiku agent appends extracted entries to `planning-artifacts/knowledge-base/failure-patterns.md` or `retro-lessons.md` using the entry template format
+- If no `EXTRACT_KNOWLEDGE_SIGNAL` in hook output: skip extraction (output had insufficient knowledge signals)
+
+### 6b. Observation Masking (Before Next Dispatch)
+After processing an agent's result, apply masking rules from `.claude/skills/observation-masking.md` to all tool outputs older than 3 turns that match the "Always Mask" categories:
+- Replace stale tool outputs with `[masked: {tool} {target}, {size} lines, turn {N}]`
+- **Never mask**: active blockers, most recent read per file, agent reasoning, pipeline-state.md
+- **Always mask**: superseded file reads, completed phase outputs, verbose bash logs after verdict
+- Goal: stay under 60k tokens proactively, avoid reactive compaction at 80k
+
+### 6c. Wave Grouping (Medium/Large only)
+For Medium/Large pipelines, planner groups tasks into waves per `.claude/skills/wave-execution.md`
 
 ### 7. Token Check (Every 5 Tasks)
 - If context > 80k tokens: compact oldest 20 turns using structured YAML schema, keep last 3 raw
@@ -126,6 +157,24 @@ STATUS: APPROVED | NEEDS_CHANGES | BLOCKED
 ISSUES: [numbered list with file:line, severity, fix guidance]
 SEVERITY per issue: CRITICAL | MAJOR | MINOR
 
+### Triage Consensus Matrix (Multi-Reviewer Conflict Resolution)
+When multiple reviewers return conflicting statuses, resolve mechanically:
+
+| Standard Reviewer | Blind Reviewer | Action |
+|---|---|---|
+| BLOCKED | BLOCKED | HALT pipeline, escalate to user |
+| BLOCKED | APPROVED | Implementer fixes standard reviewer issues only |
+| APPROVED | BLOCKED | Implementer fixes blind reviewer issues only |
+| NEEDS_CHANGES | BLOCKED | Implementer fixes ALL issues (both reviewers) |
+| BLOCKED | NEEDS_CHANGES | Implementer fixes ALL issues (both reviewers) |
+| NEEDS_CHANGES | NEEDS_CHANGES | Merge issue lists, deduplicate by file:line, fix all |
+| NEEDS_CHANGES | APPROVED | Implementer fixes standard reviewer issues only |
+| APPROVED | NEEDS_CHANGES | Implementer fixes blind reviewer issues only |
+| APPROVED | APPROVED | ADVANCE to next phase |
+
+Default row: any unrecognized status (SKIPPED, PARSE_ERROR, timeout, typo) → treat as NEEDS_CHANGES from that reviewer.
+Escalation rule: if same matrix cell fires 3+ times across tasks → WARN in pipeline-state.md.
+
 ### Circuit Breaker
 - Max 3 worker-reviewer cycles per task
 - After 3 NEEDS_CHANGES: set BLOCKED, escalate to user with issue summary
@@ -181,7 +230,7 @@ If new orchestration logic is needed:
 
 ### Multi-File Reading
 
-When reading files or gathering codebase context, use up to 30 haiku agents in parallel (model: "haiku"). Haiku agents should read files, search code, and return summaries — keeping the main context window lean.
+When reading files or gathering codebase context, use up to 30 haiku agents in parallel (model: "haiku"). Haiku agents should read files, search code, and return summaries — keeping the main context window lean. (Note: Step 4b research pre-flight uses up to 10 scouts — a subset of this limit, scoped to research tasks.)
 
 Do not read large files (>100 lines) directly in the main context when a haiku agent can read and summarize them instead. Use offset/limit parameters when only a specific section of a file is needed.
 
