@@ -32,7 +32,6 @@ _bmad-output/
 .agents/
 internal_project_documentation/
 .github/
-.claude/
 
 # OS Files
 .DS_Store
@@ -61,10 +60,8 @@ planning-artifacts/mcp-health.md
 # NOTE: planning-artifacts/knowledge-base/ IS tracked — it's the persistent RAG cache
 # NOTE: planning-artifacts/CLAUDE.md IS tracked — it's the directory index
 
-# User-specific settings
+# Claude Code — track project config, exclude user-specific and generated
 .claude/settings.local.json
-
-# Adding .claude\commands to .gitignore
 .claude/commands/
 .docs/
 tests/

@@ -1,0 +1,22 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "command": "bash .claude/hooks/enforce-paths.sh"
+      },
+      {
+        "matcher": "Agent",
+        "command": "bash .claude/hooks/enforce-sequencing.sh"
+      }
+    ],
+    "SubagentStop": [
+      {
+        "command": "bash .claude/hooks/warn-dor-dod.sh"
+      },
+      {
+        "command": "bash .claude/hooks/extract-knowledge.sh"
+      }
+    ]
+  }
+}
