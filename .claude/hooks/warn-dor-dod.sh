@@ -25,9 +25,9 @@ if command -v jq &>/dev/null; then
   MODEL=$(echo "$TOOL_IN" | jq -r '.model // empty' 2>/dev/null || true)
 else
   echo "WARN: jq not available; DoR/DoD check may be unreliable" >&2
-  AGENT_TYPE=$(echo "$TOOL_IN" | grep -oP '"subagent_type"\s*:\s*"[^"]*"' | head -1 | sed 's/.*"subagent_type"\s*:\s*"//;s/"$//' || true)
+  AGENT_TYPE=$(echo "$TOOL_IN" | grep -oE '"subagent_type"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"subagent_type"[[:space:]]*:[[:space:]]*"//;s/"$//' || true)
   AGENT_OUTPUT=$(echo "$TOOL_IN" | head -c 10000 || true)
-  MODEL=$(echo "$TOOL_IN" | grep -oP '"model"\s*:\s*"[^"]*"' | head -1 | sed 's/.*"model"\s*:\s*"//;s/"$//' || true)
+  MODEL=$(echo "$TOOL_IN" | grep -oE '"model"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"model"[[:space:]]*:[[:space:]]*"//;s/"$//' || true)
 fi
 
 # Skip for researcher agents and haiku model dispatches
@@ -64,6 +64,8 @@ while IFS= read -r cited; do
   if echo "$cited" | grep -q '[{}]'; then
     continue
   fi
+  # Windows compat: normalize backslashes to forward slashes
+  cited=$(echo "$cited" | sed 's|\\|/|g')
   if [ ! -f "$PROJECT_ROOT/$cited" ] && [ ! -d "$PROJECT_ROOT/$cited" ]; then
     echo "⚠️ SUSPICIOUS_CITATION [$AGENT_TYPE]: Cited path '$cited' does not exist on disk." >&2
   fi

@@ -63,9 +63,12 @@ planning-artifacts/mcp-health.md
 # Claude Code — track project config, exclude user-specific and generated
 .claude/settings.local.json
 .claude/commands/
+
+# BMAD skills — installed per-project, not part of template
+.claude/skills/bmad-*/
+
+# Misc exclusions
 .docs/
 tests/
 meeting.md
-docs\reverse-analysis-for-atelier.md
-docs/reverse-analysis-for-atelier.md
 docs/

@@ -21,7 +21,7 @@ fi
 if command -v jq &>/dev/null; then
   AGENT_TYPE=$(echo "$TOOL_IN" | jq -r '.subagent_type // empty')
 else
-  AGENT_TYPE=$(echo "$TOOL_IN" | grep -oP '"subagent_type"\s*:\s*"[^"]*"' | head -1 | sed 's/.*"subagent_type"\s*:\s*"//;s/"$//' || true)
+  AGENT_TYPE=$(echo "$TOOL_IN" | grep -oE '"subagent_type"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"subagent_type"[[:space:]]*:[[:space:]]*"//;s/"$//' || true)
 fi
 
 # Only gate implementer dispatches

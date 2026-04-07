@@ -23,12 +23,15 @@ if command -v jq &>/dev/null; then
   TARGET_PATH=$(echo "$TOOL_IN" | jq -r '.file_path // empty')
 else
   echo "WARN: jq not found, falling back to grep for path extraction" >&2
-  TARGET_PATH=$(echo "$TOOL_IN" | grep -oP '"file_path"\s*:\s*"[^"]*"' | head -1 | sed 's/.*"file_path"\s*:\s*"//;s/"$//' || true)
+  TARGET_PATH=$(echo "$TOOL_IN" | grep -oE '"file_path"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"file_path"[[:space:]]*:[[:space:]]*"//;s/"$//' || true)
 fi
 
 if [ -z "$TARGET_PATH" ]; then
   exit 0
 fi
+
+# Windows compat: normalize backslashes to forward slashes BEFORE traversal checks
+TARGET_PATH=$(echo "$TARGET_PATH" | sed 's|\\|/|g')
 
 # P1: Normalize target path — resolve symlinks and traversal
 if command -v realpath &>/dev/null; then
@@ -83,8 +86,8 @@ if command -v jq &>/dev/null; then
   PROJECT_DIRS=$(jq -r '.project_source_dirs[]' "$CONFIG_FILE" 2>/dev/null || true)
 else
   # Best-effort: extract only values from allowed_paths and project_source_dirs arrays
-  ALLOWED_PATHS=$(sed -n '/allowed_paths/,/]/p' "$CONFIG_FILE" | grep -oP '"[^"]*"' | tr -d '"' || true)
-  PROJECT_DIRS=$(sed -n '/project_source_dirs/,/]/p' "$CONFIG_FILE" | grep -oP '"[^"]*"' | tr -d '"' || true)
+  ALLOWED_PATHS=$(sed -n '/allowed_paths/,/]/p' "$CONFIG_FILE" | grep -oE '"[^"]*"' | tr -d '"' || true)
+  PROJECT_DIRS=$(sed -n '/project_source_dirs/,/]/p' "$CONFIG_FILE" | grep -oE '"[^"]*"' | tr -d '"' || true)
 fi
 
 # If allowed paths is empty (parse failure), fail open with warning
@@ -98,7 +101,7 @@ fi
 # Check if relative path starts with any allowed prefix
 while IFS= read -r prefix; do
   [ -z "$prefix" ] && continue
-  if [[ "$REL_PATH" == "$prefix"* ]] || [[ "$REL_PATH" == "$prefix" ]]; then
+  if [[ "$REL_PATH" == "$prefix" ]] || [[ "$REL_PATH" == "$prefix"/* ]]; then
     exit 0
   fi
 done <<< "$ALL_ALLOWED"

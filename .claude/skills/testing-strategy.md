@@ -1,4 +1,5 @@
-<!-- STATUS: TEMPLATE — replace {e.g., ...} placeholders before use -->
+## STATUS: TEMPLATE — Customize before use
+<!-- Replace all {e.g., ...} placeholders with your project's actual values -->
 # Testing Strategy
 
 > Customize this file for your project's test framework and conventions.
