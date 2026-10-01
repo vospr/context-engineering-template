@@ -1,3 +1,8 @@
+---
+name: wave-execution
+description: "Grouping of Medium/Large pipeline tasks into waves for batch execution and single-commit delivery. Use when the planner builds a task DAG or the dispatcher schedules a Medium or Large pipeline."
+---
+
 # Wave-Based Execution (ADR-002)
 
 Waves group related tasks for batch execution and single-commit delivery. This reduces commit noise and agent invocations vs. per-task commits.

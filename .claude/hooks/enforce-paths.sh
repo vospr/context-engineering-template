@@ -1,118 +1,66 @@
 #!/usr/bin/env bash
-# enforce-paths.sh — PreToolUse hook for Write/Edit tools
-# Blocks writes outside designated paths defined in enforcement-config.json
-# Windows/Git Bash compatible. Graceful degradation if jq missing.
+# enforce-paths.sh — PreToolUse hook (matcher: Write|Edit)
+# Blocks writes outside the allowlist in enforcement-config.json.
+# Contract: payload on stdin; exit 2 = block (stderr is shown to Claude); exit 0 = no objection.
+# Scope: only the Write/Edit tools. A Bash command can still write anywhere — this is a guard
+# against accidental out-of-scope edits, not a sandbox.
 
-set -eo pipefail
+. "$(dirname "$0")/lib.sh"
 
-# P3: Only fire on Write/Edit tools
-if [ "${TOOL_NAME:-}" != "Write" ] && [ "${TOOL_NAME:-}" != "Edit" ]; then
-  exit 0
-fi
+TOOL="$(jget tool_name)"
+case "$TOOL" in Write|Edit|MultiEdit|"") ;; *) exit 0 ;; esac
 
-CONFIG_FILE="$(cd "$(dirname "$0")/.." && pwd)/enforcement-config.json"
+TARGET="$(jget file_path)"
+[ -z "$TARGET" ] && exit 0
 
-# P2: Use ${TOOL_INPUT:-} to avoid unset variable crash
-TOOL_IN="${TOOL_INPUT:-}"
-if [ -z "$TOOL_IN" ]; then
-  exit 0
-fi
+ROOT="$(project_root)"
+ROOT_PHYS="$(cd "$ROOT" 2>/dev/null && pwd -P || printf '%s' "$ROOT")"
+CONFIG="$ROOT/.claude/enforcement-config.json"
+[ -f "$CONFIG" ] || CONFIG="$(dirname "$0")/../enforcement-config.json"
 
-# Extract file_path from TOOL_INPUT (JSON)
-if command -v jq &>/dev/null; then
-  TARGET_PATH=$(echo "$TOOL_IN" | jq -r '.file_path // empty')
+TARGET="${TARGET//\\//}"                                 # Windows backslashes
+case "$TARGET" in /*|[A-Za-z]:/*) ;; *) TARGET="$ROOT/$TARGET" ;; esac
+
+# Resolve symlinks and ../ through the nearest existing parent directory.
+DIR="$(dirname "$TARGET")"
+if [ -d "$DIR" ]; then
+  RESOLVED="$(cd "$DIR" && pwd -P)/$(basename "$TARGET")"
+elif printf '%s' "$TARGET" | grep -qE '(^|/)\.\.(/|$)'; then
+  echo "BLOCK: path '$TARGET' contains '..' and its parent directory does not exist." >&2
+  exit 2
 else
-  echo "WARN: jq not found, falling back to grep for path extraction" >&2
-  TARGET_PATH=$(echo "$TOOL_IN" | grep -oE '"file_path"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"file_path"[[:space:]]*:[[:space:]]*"//;s/"$//' || true)
+  RESOLVED="$TARGET"
 fi
 
-if [ -z "$TARGET_PATH" ]; then
-  exit 0
-fi
+# Make relative to the project root (try physical root, then logical; case-insensitive for drive letters).
+lc() { printf '%s' "$1" | tr 'A-Z' 'a-z'; }
+REL=""
+for base in "$ROOT_PHYS" "$ROOT"; do
+  if [[ "$(lc "$RESOLVED")" == "$(lc "$base")/"* ]]; then REL="${RESOLVED:$((${#base}+1))}"; break; fi
+done
+[ -z "$REL" ] && REL="$RESOLVED"
 
-# Windows compat: normalize backslashes to forward slashes BEFORE traversal checks
-TARGET_PATH=$(echo "$TARGET_PATH" | sed 's|\\|/|g')
+[ "$REL" = "CLAUDE.md" ] && exit 0
 
-# P1: Normalize target path — resolve symlinks and traversal
-if command -v realpath &>/dev/null; then
-  TARGET_DIR=$(dirname "$TARGET_PATH")
-  if [ -d "$TARGET_DIR" ]; then
-    RESOLVED_PATH="$(realpath -P "$TARGET_DIR" 2>/dev/null)/$(basename "$TARGET_PATH")"
-  else
-    # Parent doesn't exist — check for traversal patterns and block
-    if echo "$TARGET_PATH" | grep -qE '(\.\./|/\.\.)'; then
-      echo "BLOCK: Path '$TARGET_PATH' contains traversal and parent directory does not exist."
-      exit 1
-    fi
-    RESOLVED_PATH="$TARGET_PATH"
-  fi
+if command -v jq >/dev/null 2>&1 && [ -f "$CONFIG" ]; then
+  ALLOWED="$(jq -r '(.allowed_paths // [])[], (.project_source_dirs // [])[]' "$CONFIG" 2>/dev/null)"
 else
-  # P1: No realpath — block any path containing .. (fail closed for traversal)
-  if echo "$TARGET_PATH" | grep -qE '(\.\./|/\.\.)'; then
-    echo "BLOCK: Path '$TARGET_PATH' contains traversal and realpath is not available for safe resolution."
-    exit 1
-  fi
-  RESOLVED_PATH="$TARGET_PATH"
-  echo "WARN: realpath not found, path normalization limited" >&2
+  ALLOWED="$(sed -n '/allowed_paths/,/]/p;/project_source_dirs/,/]/p' "$CONFIG" 2>/dev/null | grep -oE '"[^"]*/"' | tr -d '"')"
+fi
+if [ -z "$ALLOWED" ]; then
+  echo "BLOCK: no allowed paths could be loaded from $CONFIG — refusing to guess." >&2
+  exit 2
 fi
 
-# Normalize to forward slashes (Windows compat)
-RESOLVED_PATH=$(echo "$RESOLVED_PATH" | sed 's|\\|/|g')
-
-# Get project root (two levels up from hooks dir)
-PROJECT_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-PROJECT_ROOT=$(echo "$PROJECT_ROOT" | sed 's|\\|/|g')
-
-# Make path relative to project root if absolute (case-insensitive for Windows drive letters)
-RESOLVED_LOWER=$(echo "$RESOLVED_PATH" | tr 'A-Z' 'a-z')
-ROOT_LOWER=$(echo "$PROJECT_ROOT" | tr 'A-Z' 'a-z')
-
-if [[ "$RESOLVED_LOWER" == "$ROOT_LOWER"* ]]; then
-  REL_PATH="${RESOLVED_PATH:${#PROJECT_ROOT}}"
-  REL_PATH="${REL_PATH#/}"
-else
-  REL_PATH="$RESOLVED_PATH"
-fi
-
-# Load allowed paths from config
-if [ ! -f "$CONFIG_FILE" ]; then
-  echo "WARN: enforcement-config.json not found at $CONFIG_FILE, allowing write" >&2
-  exit 0
-fi
-
-# P5: Use jq for reliable parsing; grep fallback scoped to allowed_paths array
-if command -v jq &>/dev/null; then
-  ALLOWED_PATHS=$(jq -r '.allowed_paths[]' "$CONFIG_FILE" 2>/dev/null || true)
-  PROJECT_DIRS=$(jq -r '.project_source_dirs[]' "$CONFIG_FILE" 2>/dev/null || true)
-else
-  # Best-effort: extract only values from allowed_paths and project_source_dirs arrays
-  ALLOWED_PATHS=$(sed -n '/allowed_paths/,/]/p' "$CONFIG_FILE" | grep -oE '"[^"]*"' | tr -d '"' || true)
-  PROJECT_DIRS=$(sed -n '/project_source_dirs/,/]/p' "$CONFIG_FILE" | grep -oE '"[^"]*"' | tr -d '"' || true)
-fi
-
-# If allowed paths is empty (parse failure), fail open with warning
-ALL_ALLOWED=$(printf "%s\n%s" "$ALLOWED_PATHS" "$PROJECT_DIRS" | grep -v '^$' || true)
-
-if [ -z "$ALL_ALLOWED" ]; then
-  echo "WARN: No allowed paths loaded from config — allowing write (parse failure?)" >&2
-  exit 0
-fi
-
-# Check if relative path starts with any allowed prefix
 while IFS= read -r prefix; do
   [ -z "$prefix" ] && continue
-  if [[ "$REL_PATH" == "$prefix" ]] || [[ "$REL_PATH" == "$prefix"/* ]]; then
-    exit 0
-  fi
-done <<< "$ALL_ALLOWED"
+  p="${prefix%/}"
+  if [ "$REL" = "$p" ] || [[ "$REL" == "$p"/* ]]; then exit 0; fi
+done <<< "$ALLOWED"
 
-# Also allow CLAUDE.md at project root
-if [[ "$REL_PATH" == "CLAUDE.md" ]]; then
-  exit 0
-fi
-
-# Block the write
-echo "BLOCK: Write to '$REL_PATH' is outside allowed paths."
-echo "Allowed paths: $(echo "$ALL_ALLOWED" | tr '\n' ', ')"
-echo "Update .claude/enforcement-config.json to add new allowed paths."
-exit 1
+{
+  echo "BLOCK: Write to '$REL' is outside the allowed paths."
+  echo "Allowed: $(printf '%s' "$ALLOWED" | tr '\n' ' ')"
+  echo "Add the directory to .claude/enforcement-config.json (allowed_paths or project_source_dirs) if this write is intended."
+} >&2
+exit 2

@@ -1,6 +1,8 @@
 # Coding Standards Sources Registry
 # Edit this file to control which coding standards apply per language/framework.
 # Sources resolve in priority order: override > verified > community
+# All sources are local files. Community rules are vendored (pinned commit, sha256-checked) under
+# .claude/skills/coding-standards/vendored/ — see MANIFEST.json there. Nothing is fetched at runtime.
 
 defaults:
   trust: community
@@ -8,18 +10,23 @@ defaults:
 
 sources:
   typescript:
-    - url: "https://raw.githubusercontent.com/PatrickJS/awesome-cursorrules/main/rules/typescript-nodejs-nextjs-app-cursorrules-prompt-file/.cursorrules"
+    - local: ".claude/skills/coding-standards/vendored/typescript.cursorrules"
       trust: community
-    - local: ".claude/skills/overrides/typescript.md"
-      trust: override
+      source: "PatrickJS/awesome-cursorrules@5b9e9a4 rules/typescript-nodejs-nextjs-app-cursorrules-prompt-fi/.cursorrules"
   python:
-    - url: "https://raw.githubusercontent.com/PatrickJS/awesome-cursorrules/main/rules/python-fastapi-best-practices-cursorrules-prompt-file/.cursorrules"
+    - local: ".claude/skills/coding-standards/vendored/python.cursorrules"
       trust: community
-    - local: ".claude/skills/overrides/python.md"
-      trust: override
+      source: "PatrickJS/awesome-cursorrules@5b9e9a4 rules/python-fastapi-best-practices-cursorrules-prompt-f/.cursorrules"
+  go:
+    - local: ".claude/skills/coding-standards/vendored/go.cursorrules"
+      trust: community
+      source: "PatrickJS/awesome-cursorrules@5b9e9a4 rules/go-servemux-rest-api-cursorrules-prompt-file/.cursorrules"
   matlab:
+    # project-supplied file; skipped if missing
     - local: "stories/matlab-coding-standards.md"
       trust: verified
-  go:
-    - url: "https://raw.githubusercontent.com/PatrickJS/awesome-cursorrules/main/rules/go-servemux-rest-api-cursorrules-prompt-file/.cursorrules"
-      trust: community
+
+# Project overrides win over everything else. Example:
+#  typescript:
+#    - local: ".claude/skills/coding-standards/overrides/typescript.md"
+#      trust: override

@@ -1,0 +1,34 @@
+{
+  "upstream": "https://github.com/PatrickJS/awesome-cursorrules",
+  "commit": "5b9e9a480cde88d6076ed91e68b39cad6cdfcd7f",
+  "license": "CC0-1.0",
+  "fetched": "2026-10-01",
+  "notes": [
+    "Pinned to the parent of upstream commit 4467ad4 (2026-05-13, \"Restructure rules\"), the last commit with these .cursorrules paths.",
+    "The URLs the template used to read at runtime (original_template_url) all return 404 as of 2026-10-01. At the pinned commit the TypeScript and Python directories have truncated names, so those two template URLs did not resolve there either; only the Go one did.",
+    "Content is unmodified. To update: fetch from a new commit, replace the files, update commit and sha256 here, re-run checks/run.sh."
+  ],
+  "files": [
+    {
+      "path": "typescript.cursorrules",
+      "language": "typescript",
+      "source_path": "rules/typescript-nodejs-nextjs-app-cursorrules-prompt-fi/.cursorrules",
+      "original_template_url": "https://raw.githubusercontent.com/PatrickJS/awesome-cursorrules/main/rules/typescript-nodejs-nextjs-app-cursorrules-prompt-file/.cursorrules",
+      "sha256": "ef1f1289fe79c2ac1c8f96ba16874692f711257241fbb80849d248ae4cb1fdff"
+    },
+    {
+      "path": "python.cursorrules",
+      "language": "python",
+      "source_path": "rules/python-fastapi-best-practices-cursorrules-prompt-f/.cursorrules",
+      "original_template_url": "https://raw.githubusercontent.com/PatrickJS/awesome-cursorrules/main/rules/python-fastapi-best-practices-cursorrules-prompt-file/.cursorrules",
+      "sha256": "5e4605d7eb6660db3008f64faad88d39f36777be60ec7cdea5a22d1d31761cf6"
+    },
+    {
+      "path": "go.cursorrules",
+      "language": "go",
+      "source_path": "rules/go-servemux-rest-api-cursorrules-prompt-file/.cursorrules",
+      "original_template_url": "https://raw.githubusercontent.com/PatrickJS/awesome-cursorrules/main/rules/go-servemux-rest-api-cursorrules-prompt-file/.cursorrules",
+      "sha256": "dcd9670d28a252e8d844069dcc53168e097a4b9cd9ff333ec5dbe3fbdb0ee2ee"
+    }
+  ]
+}

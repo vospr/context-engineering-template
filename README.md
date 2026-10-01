@@ -1,789 +1,188 @@
-﻿# Claude Code Context Engineering Template
+# Claude Code Context Engineering Template
 
-A lightweight, project-agnostic template that turns Claude Code into a context-engineered multi-agent system.
+A Claude Code project template for multi-agent delivery. A stateless dispatcher (`CLAUDE.md`) routes work to seven role
+agents. Planning, decisions and failure patterns live in files, and review loops have hard stop conditions.
+Built February–April 2026.
 
 ## Content
 
-- [What Is This?](#what-is-this)
-- [Who Is This For?](#who-is-this-for)
-- [Project Brief](#project-brief)
-- [Quick Start](#quick-start)
-- [Architecture](#architecture)
-- [How It Works](#how-it-works)
-- [Adding Agents](#adding-agents)
-- [Project Structure](#project-structure)
-- [Design Principles](#design-principles)
-- [Context Engineering Framework](#context-engineering-framework)
-- [Enforcement & Hardening](#enforcement--hardening)
-- [Dynamic Coding Standards](#dynamic-coding-standards)
-- [Idea Organization and Prioritization](#idea-organization-and-prioritization)
-- [Architectural Decisions Stress-Tested](#architectural-decisions-stress-tested)
-- [Why This Matters](#why-this-matters)
-- [Resources](#resources)
-- [Appendix: Avoiding "Dark Factory" Anti-Patterns](#appendix-avoiding-dark-factory-anti-patterns)
+- [Status and lineage](#status-and-lineage)
+- [What is in the template](#what-is-in-the-template)
+- [Quick start](#quick-start)
+- [How it works](#how-it-works)
+- [Hooks](#hooks)
+- [Skills and coding standards](#skills-and-coding-standards)
+- [Scenario comparison (Feb 2026)](#scenario-comparison-feb-2026)
+- [Checks and evidence](#checks-and-evidence)
+- [Known limits](#known-limits)
 - [License](#license)
 
-## What Is This?
+## Status and lineage
 
-This template encodes **Context Engineering**: controlling what enters an LLM context, when, in what form, and what stays externalized.
+**This is a dated build, frozen apart from one revision. It is not a current or maintained tool.** It was built in 41 commits on 8 days between
+2026-02-06 and 2026-04-07 (`git log --all`). It was then revised once, on 2026-10-01 (branch `redo-2026-10`), to fix
+the hooks, move skills to the current format, pin external inputs, restore the benchmark, and remove claims the repo
+could not back. Claude Code has moved on since April 2026, notably with scripted multi-agent workflows and plugins.
+Today the dispatch loop would be written as a workflow script and shipped as a plugin; that rebuild has not been done.
 
-It provides a practical operating model where:
+Where the parts come from:
 
-- A **Main Agent** (`CLAUDE.md`) acts as a stateless dispatcher
-- **Specialized subagents** handle research, planning, architecture, implementation, review, and testing
-- **Skills** provide reusable knowledge loaded on demand
-- **Files** act as durable external memory across context compaction
-- **Git** provides lineage, checkpoints, and recovery
+- **Core design (Feb–Mar 2026), the author's synthesis.** The stateless dispatcher, file-based memory, role agents,
+  blind reviewer, circuit breakers and spec-driven development protocol. They draw on published context-engineering
+  writing rather than on one project. February planning used the BMAD method; those outputs are no longer tracked
+  (commit `a9b4887`, `.gitignore`).
+- **April 2026 hardening, adapted from [Atelier Pipeline](https://github.com/robertsfeir/atelier-pipeline).**
+  Commit `d6d31e0` (2026-04-07, "Atelier-inspired") added the triage consensus matrix, step sizing gate,
+  research pre-flight and max-turns-per-tier to `CLAUDE.md`. The earlier README also credited Atelier for the
+  enforcement hooks, pipeline sizing, adversarial review and knowledge injection. Files that credit a specific Atelier
+  version or ADR:
+  - `.claude/hooks/extract-knowledge.sh`: brain-extractor idea, Atelier v3.24.0
+  - `.claude/skills/observation-masking/SKILL.md`: Atelier ADR-0011
+  - `.claude/skills/agent-compression-guide/SKILL.md`: Atelier v3.21.0
+- **Community coding rules from [awesome-cursorrules](https://github.com/PatrickJS/awesome-cursorrules) (CC0-1.0).**
+  Three rule files are vendored at a pinned commit; see [Skills and coding standards](#skills-and-coding-standards).
 
-## Who Is This For?
+## What is in the template
 
-- **Engineers:** run scoped work in repeatable loops (spec -> implement -> review -> validate) without losing context across sessions.
-- **QA:** make verification first-class (assertions, quality gates, CI evidence) even when the “system” is mostly documentation and workflows.
-- **DevOps:** treat CI as the enforcement surface for quality gates and artifact publishing.
-- **PM/Analysts:** keep planning artifacts durable and traceable (feature tracker, specs, decisions), reducing “lost context” between iterations.
+| Path | What |
+|---|---|
+| [CLAUDE.md](CLAUDE.md) | Dispatch loop: read state → pick task → match agent → size task → dispatch → process result |
+| [.claude/agents/](.claude/agents/) | 7 agents: researcher, planner, architect, implementer, reviewer, blind-reviewer, tester (+ `_agent-template.md`) |
+| [.claude/skills/](.claude/skills/) | 10 skills, each `<name>/SKILL.md` |
+| [.claude/hooks/](.claude/hooks/) | 4 hooks + `lib.sh`, registered in [.claude/settings.json](.claude/settings.json) |
+| [.claude/enforcement-config.json](.claude/enforcement-config.json) | Write allowlist used by `enforce-paths.sh` |
+| [coding-standards-sources.yaml](coding-standards-sources.yaml) | Language → local coding-rule files |
+| [planning-artifacts/](planning-artifacts/) | File-based memory: pipeline state, decisions, [knowledge base](planning-artifacts/knowledge-base/) |
+| [benchmarks/scenario-comparison/](benchmarks/scenario-comparison/) | Feb 2026 with/without comparison, restored |
+| [checks/](checks/) | Acceptance checks for this revision |
+| [evidence/](evidence/) | Recorded check runs and the live hook run |
 
-## Project Brief
+## Quick start
 
-This repository is a reusable template focused on orchestration behavior, quality gates, and durable execution context.
+Prerequisites: git, the Claude Code CLI, `bash` and `jq` (the hooks fall back to grep without `jq`, but the checks need it).
 
-It is markdown-first and zero-runtime by design: the core system behavior lives in agent/skill definitions and file conventions, not in application runtime code.
+```bash
+git clone https://github.com/vospr/context-engineering-template.git my-project
+cd my-project && rm -rf .git && git init
+```
 
-Primary purpose:
+Then:
 
-- Start new projects with a production-style multi-agent workflow
-- Keep context usage controlled under long-running sessions
-- Enforce consistent review/verification patterns
-- Preserve project state in files that survive session resets
+1. Customise the template skills for your stack: `.claude/skills/review-checklist/SKILL.md`,
+   `.claude/skills/testing-strategy/SKILL.md`, `.claude/skills/architecture-principles/SKILL.md`.
+2. Add your source directories to `project_source_dirs` in `.claude/enforcement-config.json`, or the
+   `enforce-paths` hook will block the implementer from writing code.
+3. Run `bash checks/run.sh` to confirm the hooks behave in your environment, then start `claude`.
 
-### Executive Diagram
+## How it works
 
 ```mermaid
 flowchart LR
-    U["User Goal"] --> M["Main Agent<br/>Orchestration Kernel"]
-
-    M --> R["R: Researcher"]
-    M --> P["P: Planner"]
-    M --> A["A: Architect"]
-    M --> I["I: Implementer"]
-    M --> RV["Rev: Reviewer"]
-    M --> BR["BR: Blind Reviewer"]
-    M --> T["T: Tester"]
-
-    P --> S["Specs + Wave Plan"]
-    I --> X["Implementation"]
-    RV --> Q["Quality Review"]
-    BR --> Q
-    T --> V["Validation"]
-
-    S --> O["Project Artifacts"]
-    X --> O
-    Q --> O
-    V --> O
-
-    O --> G["Git Lineage + Recovery"]
-
-    subgraph "Enforcement Layer"
-        EP["enforce-paths"]
-        ES["enforce-sequencing"]
-        DD["warn-dor-dod"]
+    U["User goal"] --> M["Main agent<br/>(CLAUDE.md dispatcher)"]
+    M --> R["Researcher"] & P["Planner"] & A["Architect"] & I["Implementer"] & RV["Reviewer"] & BR["Blind reviewer"] & T["Tester"]
+    P & I & RV & BR & T --> O["planning-artifacts/<br/>implementation-artifacts/"]
+    O --> G["Git (feature branch, micro-commits)"]
+    O -.->|"failure patterns / lessons injected"| M
+    subgraph Hooks
+      EP["enforce-paths (blocks)"]
+      ES["enforce-sequencing (blocks)"]
+      DD["warn-dor-dod (logs)"]
+      EK["extract-knowledge (logs)"]
     end
-
     I -.-> EP
     M -.-> ES
-    RV -.-> DD
-    BR -.-> DD
-    T -.-> DD
-
-    subgraph "Knowledge Loop"
-        FP["failure-patterns"]
-        RL["retro-lessons"]
-        PS["pipeline-state"]
-    end
-
-    O --> FP
-    O --> RL
-    O --> PS
-    FP -.->|"inject warnings"| M
-    RL -.->|"inject proven"| M
-    PS -.->|"recovery cache"| M
+    RV & BR & T -.-> DD
+    RV & T & I -.-> EK
 ```
 
-## Quick Start
+The dispatch loop is described in full in [CLAUDE.md](CLAUDE.md). In short:
 
-### Prerequisites
-- Git installed
-- Claude Code CLI installed
+- **Sizing.** Each task is classified Micro / Small / Medium / Large
+  ([pipeline-sizing](.claude/skills/pipeline-sizing/SKILL.md)). Size sets the model tier and pipeline depth: Micro runs
+  the implementer only on haiku; Large runs architect (opus) → planner → implementer → reviewer + blind reviewer → tester.
+- **Review.** The reviewer returns `STATUS: APPROVED | NEEDS_CHANGES | BLOCKED` with numbered, severity-rated issues.
+  For Medium/Large tasks a blind reviewer, told to use only the diff, runs in parallel. A 9-cell table in
+  `CLAUDE.md` resolves disagreements. After 3 `NEEDS_CHANGES` cycles the task is set to BLOCKED and goes to the user.
+- **Memory.** Decisions, pipeline state and failure patterns are written to files. Patterns seen 3 or more times are
+  injected into later agent prompts as warnings.
+- **Spec-driven mode.** Present by default via [spec-protocol](.claude/skills/spec-protocol/SKILL.md) (1,450+ lines).
+  It adds spec packets, assertions and a feature tracker.
 
-### 1. Clone or download template files
+These are instructions to the model. Apart from the hooks below, nothing enforces them mechanically, and this repo does
+not measure how reliably a model follows them.
 
-**Option A: Manual Download (ZIP)**
+## Hooks
 
-Download the repository as a ZIP file from GitHub, then extract it to your machine and initialize git:
+The hooks use the current Claude Code hook contract (checked against the hooks reference on 2026-10-01; see
+`.claude/hooks/lib.sh`). The event arrives as JSON on stdin, and `exit 2` blocks a tool call with stderr shown to Claude.
+`SubagentStop` output on exit 0 never reaches the model, so the two advisory hooks write to files that `CLAUDE.md`
+step 6a tells the dispatcher to read.
+
+| Hook | Event | Behaviour | Verified by |
+|---|---|---|---|
+| `enforce-paths.sh` | PreToolUse `Write\|Edit` | Blocks writes outside the allowlist; resolves `../` and symlinks first | checks H3–H5; live run in `evidence/hook-block-live-*.log` |
+| `enforce-sequencing.sh` | PreToolUse `Agent\|Task` | Blocks dispatching the implementer while no `planning-artifacts/*plan-*.md` exists | checks H6–H7 |
+| `warn-dor-dod.sh` | SubagentStop (implementer, reviewers, tester) | Logs missing artifact citations, missing `AC-n` IDs, and cited paths that do not exist to `planning-artifacts/hook-warnings.log` | checks H8–H9 |
+| `extract-knowledge.sh` | SubagentStop (6 agents) | Appends `EXTRACT_KNOWLEDGE_SIGNAL` to `planning-artifacts/.hook-signals` when the final message has ≥5 knowledge-signal lines | check H10 |
+
+Before the 2026-10 revision, none of these hooks could fire: the settings used a flat format, the scripts read
+environment variables Claude Code does not set, and they blocked with `exit 1`. The baseline run in
+`evidence/checks-run-0-baseline-2026-10-01.log` records that state.
+
+## Skills and coding standards
+
+All 10 skills are `.claude/skills/<name>/SKILL.md` with `name` and `description` frontmatter. Every skill an agent
+lists in its `skills:` field resolves to one of them (checks S1–S3). Three are templates to customise per project:
+architecture-principles, review-checklist and testing-strategy.
+
+The [coding-standards](.claude/skills/coding-standards/SKILL.md) loader detects the project stack and merges rules
+from [coding-standards-sources.yaml](coding-standards-sources.yaml). Every source is now a local file:
+
+- Community rules for TypeScript, Python and Go are vendored in
+  [.claude/skills/coding-standards/vendored/](.claude/skills/coding-standards/vendored/). They are pinned to
+  awesome-cursorrules commit `5b9e9a4`, the last one before upstream restructured its rules on 2026-05-13.
+  `MANIFEST.json` records the commit, licence and sha256 of each file (check V2).
+- Before this revision the template read these rules from the upstream `main` branch at runtime. Those URLs all return
+  404 as of 2026-10-01; at the pinned commit, only the Go URL resolved.
+- Project overrides go in [.claude/skills/coding-standards/overrides/](.claude/skills/coding-standards/overrides/).
+
+## Scenario comparison (Feb 2026)
+
+In February 2026 the same small todo API was built with the full template (A), bare (B), and with the template in a
+single prompt (C). A fourth run (D) exercised the spec pipeline on a health endpoint. The reports are restored unchanged in
+[benchmarks/scenario-comparison/](benchmarks/scenario-comparison/). The README there lists their limits.
+
+The short version is one run per scenario, self-assessed:
+
+- The full pipeline (A) produced the broadest result. It logged 613,670 tokens and failed first-pass quality (246 lint
+  errors fixed afterwards).
+- The single-prompt run (C) was the cleanest first pass. Its tokens were only estimated (<100k).
+- The bare baseline's (B) tokens were not recorded.
+
+So "about an order of magnitude more tokens for the full pipeline" is a logged figure set against estimates, not a
+measured ratio.
+
+## Checks and evidence
 
 ```bash
-unzip context-engineering-template-main.zip
-cd context-engineering-template-main
-git init
+bash checks/run.sh              # offline acceptance checks (bash, jq, git); exit 0 = all pass
+bash checks/live-hook-proof.sh  # real `claude -p` session; needs an authenticated CLI, uses a little API quota
 ```
 
-**Option B: Mac/Linux (Git Clone)**
-
-```bash
-git clone https://github.com/vospr/context-engineering-template.git my-project
-cd my-project
-rm -rf .git
-git init
-```
-
-**Option C: Windows (PowerShell)**
-
-```powershell
-git clone https://github.com/vospr/context-engineering-template.git my-project
-cd my-project
-Remove-Item -Recurse -Force .git
-git init
-```
-
-### 2. Customize placeholder skills (Required)
-
-Customize these files for your stack:
-
-```bash
-.claude/skills/review-checklist.md
-.claude/skills/testing-strategy.md
-.claude/skills/architecture-principles.md
-```
-
-> **Note:** [.claude/skills/coding-standards.md](.claude/skills/coding-standards.md) is no longer a placeholder - it is a dynamic loader skill that resolves standards from [coding-standards-sources.yaml](coding-standards-sources.yaml). See [Dynamic Coding Standards](#dynamic-coding-standards).
-
-Validation check:
-
-```bash
-grep -r "\[PLACEHOLDER\]" .claude/skills/
-```
-
-### 3. Start Claude Code
-
-```bash
-claude
-```
-
-## Architecture
-
-The pipeline adapts its shape to task complexity. Four tiers trigger different agent compositions, review strategies, and commit patterns — all passing through the same enforcement and knowledge layers.
-
-```
-User Goal
-  → Dispatch Loop classifies 4-tier complexity (Micro / Small / Medium / Large)
-  → Knowledge injection (failure-patterns + retro-lessons)
-  → Tier-appropriate agent pipeline executes
-  → Enforcement hooks validate at each step
-  → Knowledge base updated with new patterns
-  → pipeline-state.md checkpointed
-  → Next task / next wave
-```
-
-### Micro Pipeline (≤2 files, mechanical — haiku)
-
-```mermaid
-flowchart LR
-    U["User Goal"] --> M["Dispatch Loop"]
-    M --> I["I: Implementer"]
-    I -.-> EP["enforce-paths"]
-    I --> CM["Commit [T-id]"]
-    CM --> G["Git"]
-```
-
-Fastest path. No planner, no review, no tests. Enforcement hooks still fire. Used for typo fixes, config tweaks, renames.
-
-### Small Pipeline (<3 files, bug fix — sonnet)
-
-```mermaid
-flowchart LR
-    U["User Goal"] --> M["Dispatch Loop<br/>classify: Small"]
-
-    M --> KI["Knowledge Injection<br/>failure-patterns + retro-lessons"]
-    KI --> I["I: Implementer"]
-    I --> EP["enforce-paths.sh"]
-    EP --> RV["Rev: Reviewer"]
-    RV --> DD["warn-dor-dod.sh"]
-
-    RV -->|"APPROVED"| CM["Commit [T-id]"]
-    RV -->|"NEEDS_CHANGES"| I
-    RV -->|"3x NEEDS_CHANGES"| BL["BLOCKED → User"]
-
-    CM --> G["Git"]
-```
-
-Adds review loop with circuit breaker. Knowledge injection warns about known failure patterns before implementation starts.
-
-### Medium Pipeline (2-4 steps, feature — sonnet)
-
-```mermaid
-flowchart LR
-    U["User Goal"] --> M["Dispatch Loop"]
-    M --> KI["Knowledge Injection"]
-    KI --> P["P: Planner"]
-    P --> WP["Wave Plan"]
-
-    subgraph "Each Wave"
-        I["I: Implementer"]
-        RV["Rev: Reviewer"]
-        BR["BR: Blind Reviewer"]
-        T["T: Tester"]
-        CM["Commit [W-id]"]
-
-        I --> RV
-        I --> BR
-        RV --> T
-        BR --> T
-        T -->|"PASS"| CM
-        T -->|"FAIL"| I
-    end
-
-    WP --> I
-    CM --> PS["pipeline-state"]
-    PS -->|"next wave"| I
-    PS -->|"done"| G["Git"]
-
-    I -.-> EP["enforce-paths"]
-    RV -.-> DD["warn-dor-dod"]
-    BR -.-> DD
-```
-
-Full pipeline with planning, parallel review (Reviewer + Blind Reviewer), testing, and wave-based commits. One phase per user turn — no silent chaining.
-
-### Large Pipeline (5+ steps, new system — opus + sonnet)
-
-```mermaid
-flowchart LR
-    U["User Goal"] --> M["Dispatch Loop"]
-    M --> KI["Knowledge Injection"]
-    KI --> A["A: Architect"]
-    A --> DEC["decisions.md"]
-    DEC --> P["P: Planner"]
-    P --> WP["Wave Plan"]
-
-    subgraph "Each Wave = ADR Step"
-        I["I: Implementer"]
-        RV["Rev: Reviewer"]
-        BR["BR: Blind Reviewer"]
-        T["T: Tester"]
-        CM["Commit [W-N]"]
-
-        I --> RV
-        I --> BR
-        RV --> T
-        BR --> T
-        T -->|"PASS"| CM
-        T -->|"FAIL"| I
-    end
-
-    WP --> I
-    CM --> PS["pipeline-state"]
-    PS -->|"next wave"| I
-    PS -->|"done"| FT["Feature Tracker"]
-    FT --> G["Git"]
-
-    I -.-> EP["enforce-paths"]
-    RV -.-> DD["warn-dor-dod"]
-    BR -.-> DD
-```
-
-Architect runs first (opus model) to produce ADRs before any code. Each ADR step becomes a wave. Full agent pool with session recovery — if session drops, next session resumes from the last completed wave.
-
-### Shared: Enforcement + Knowledge Layer (all tiers)
-
-```mermaid
-flowchart LR
-    subgraph "Enforcement"
-        EP["enforce-paths"]
-        ES["enforce-sequencing"]
-        DD["warn-dor-dod"]
-    end
-
-    subgraph "Knowledge"
-        FP["failure-patterns"]
-        RL["retro-lessons"]
-        PS["pipeline-state"]
-        DEC["decisions.md"]
-    end
-
-    subgraph "Recovery"
-        SR{"state fresh?"}
-        CACHE["Use cache"]
-        DERIVE["Derive from TaskList + git"]
-    end
-
-    EP -->|"Write/Edit"| BK["Block or Allow"]
-    ES -->|"Agent dispatch"| BK2["Block or Allow"]
-    DD -->|"SubagentStop"| WN["Advisory Warning"]
-
-    FP -.->|"inject at ≥3"| M["Dispatch Loop"]
-    RL -.->|"inject at ≥3"| M
-
-    SR -->|"< 1hr"| CACHE
-    SR -->|"stale"| DERIVE
-    DERIVE --> PS
-```
-
-**[R]**esearcher - **[P]**lanner - **[A]**rchitect - **[I]**mplementer - **[Rev]**iewer - **[BR]** Blind Reviewer - **[T]**ester
-
-### Architectural Anchor
-
-SDD is an external, verifiable, decomposable definition of done that survives context loss and keeps specification cost below ambiguity cost.
-
-### Delivery Model (Thin Vertical Slice)
-
-- **Slice 1 (MVP Pipeline):** minimum spec packet + controlled vocabulary + inline assertions + post-task audit
-- **Slice 2 (Track & Continue):** feature tracker for continuity and zero-handoff resumption
-- **Slice 3 (Govern & Verify):** constitution/gates (optional), two-layer verification, escalation
-- **Slice 4 (Scale & Extend):** permanent agent extensions (planner spec authoring, reviewer spec review, tester assertion/integration modes), reusable spec templates, agent-specific spec views, metrics dashboard
-
-### Key Architecture Decisions
-
-- **ADR-001:** YAML spec packets + markdown feature overviews
-- **ADR-002:** skill-first spec authoring, permanent agent extension deferred
-- **ADR-003:** inline assertion verification first, then two-layer verification
-- **ADR-004:** JSON feature tracker as continuity index
-- **ADR-005:** progressive governance from lightweight protocol to optional constitution
-
-### Dispatch Integration (SDD Mode)
-
-- SDD activates when [.claude/skills/spec-protocol.md](.claude/skills/spec-protocol.md) is present
-- Dispatch loop adds spec-aware routing (`spec_tier`) on top of model routing
-- Planner can be auto-dispatched to spec next unverified feature when task queue is empty
-- `NEEDS_RESPEC` feedback triggers planner re-spec of affected subtree
-
-### File Organization Rules
-
-- Spec packets are embedded inline in task descriptions (no extra read hops for execution)
-- Spec overviews are flat files in `planning-artifacts/` with `spec-F-{NNN}-{name}-overview.md` naming
-- Feature progress state is tracked in [planning-artifacts/](planning-artifacts/) as `feature-tracker.json` (generated/optional artifact)
-
-## How It Works
-
-### The Dispatch Loop (CLAUDE.md)
-0. **Standards Check** — if resolved coding standards are missing or stale, dispatch loader (non-blocking)
-1. **Read** current state from task system, artifacts, and `pipeline-state.md` recovery cache
-2. **Select** next unblocked task
-3. **Match** task to best-fit specialized agent (including blind-reviewer for adversarial review)
-4. **Classify** using 4-tier pipeline sizing (Micro / Small / Medium / Large) — see [pipeline-sizing.md](.claude/skills/pipeline-sizing.md)
-5. **Dispatch** task with context paths + failure/lesson pattern warnings (auto-injected from knowledge base)
-6. **Process** result, update `pipeline-state.md`, and handle flags
-7. **Repeat** with periodic compaction/token checks (keep-list protects critical references)
-
-### Communication Patterns
-| Pattern | When | How |
-|---------|------|-----|
-| One-Shot | Default | Single agent completes task independently |
-| Worker-Reviewer | Implementation | Implementer <-> Reviewer + Blind Reviewer (parallel for Medium/Large), max 3 cycles |
-| One-Phase-Per-Turn | Medium/Large | One phase transition per response — user sees each step |
-| Parallel Fan-Out | Multi-perspective | Agents run in parallel on non-overlapping files |
-
-### Token Budget
-- Main Agent target: **<128k tokens** for end-to-end work
-- Proactive compaction around **80k**
-- Decisions/state persisted to files immediately
-- Model economics: sonnet default, opus for complex architecture, haiku for lightweight tasks
-
-## Adding Agents
-
-Add a new `.md` file in [.claude/agents/](.claude/agents/) following [.claude/agents/_agent-template.md](.claude/agents/_agent-template.md). The Main Agent discovers agents by directory scan.
-
-## Project Structure
-
-```
-project-root/
-├── CLAUDE.md                                    # Dispatch loop kernel (Step 0 Standards Check + SDD)
-├── coding-standards-sources.yaml                # Language → coding standard source registry
-├── README.md                                    # Project documentation
-├── .gitignore                                   # Includes .env*, credentials.*, secrets/
-│
-├── .claude/
-│   ├── agents/                                  # Self-discovering agent pool
-│   │   ├── researcher.md                        # Web search, tech evaluation
-│   │   ├── planner.md                           # Task DAG + spec authoring + wave grouping
-│   │   ├── architect.md                         # System design, tech selection
-│   │   ├── implementer.md                       # Code writing, file editing, wave discipline
-│   │   ├── reviewer.md                          # Code review + spec review + retro lessons
-│   │   ├── blind-reviewer.md                    # Adversarial diff-only review (no spec context)
-│   │   └── tester.md                            # Test execution + assertion execution + retro lessons
-│   │
-│   ├── skills/
-│   │   ├── spec-protocol.md                     # [NEW: Slice 1] SDD core — format, vocabulary, assertions, governance seed
-│   │   ├── coding-standards.md                  # Dynamic loader skill (detects stack, resolves standards)
-│   │   ├── overrides/                           # Local project-specific standard overrides (trust: override)
-│   │   │   └── README.md                        # Override naming convention and format docs
-│   │   ├── review-checklist.md                  # Review quality gate checklist
-│   │   ├── testing-strategy.md                  # Existing testing approach
-│   │   ├── architecture-principles.md           # Architecture constraints and principles
-│   │   ├── pipeline-sizing.md                   # 4-tier adaptive model (Micro/Small/Medium/Large)
-│   │   ├── wave-execution.md                    # Wave-based task grouping with commit discipline
-│   │   └── git-workflow.md                      # Dual commit strategy (micro-commits + wave-commits)
-│   │
-│   ├── hooks/                                   # Mechanical enforcement scripts
-│   │   ├── enforce-paths.sh                     # Blocks writes outside allowed paths (PreToolUse)
-│   │   ├── enforce-sequencing.sh                # Blocks implementer before planning (PreToolUse)
-│   │   └── warn-dor-dod.sh                      # Advisory DoR/DoD validation (SubagentStop)
-│   │
-│   ├── enforcement-config.json                  # Allowed paths for enforce-paths.sh
-│   ├── standards-cache/                         # Cached remote coding standards (populated externally)
-│   │
-│   └── spec-templates/                          # [NEW: Slice 4, optional] Reusable spec patterns
-│       ├── rest-crud-endpoint.yaml              # Template for REST CRUD features
-│       ├── auth-flow.yaml                       # Template for auth features
-│       └── data-pipeline.yaml                   # Template for data processing features
-│
-├── planning-artifacts/
-│   ├── detected-stack.json                      # Auto-detected project languages/frameworks
-│   ├── coding-standards-resolved.md             # Merged coding standards per language (full rules)
-│   ├── coding-standards-summary.md              # Compressed top rules (≤400 tokens, on keep-list)
-│   ├── feature-tracker.json                     # [NEW: Slice 2] Feature-level progress index
-│   ├── constitution.md                          # [NEW: Slice 3, optional] Immutable project principles
-│   ├── spec-F-001-{name}-overview.md            # [NEW: Slice 1] Per-feature spec overviews
-│   ├── spec-F-002-{name}-overview.md
-│   ├── decisions.md                             # Architectural/technology decision log
-│   ├── project-status.md                        # Current phase, milestones, blockers
-│   ├── session-context.md                       # Token compaction summaries
-│   ├── pipeline-state.md                        # Session recovery cache (1hr TTL, derivable)
-│   └── knowledge-base/                          # Shared context artifacts between agents
-│       ├── README.md
-│       ├── failure-patterns.md                  # Learning from past failures (auto-injected at ≥3 occurrences)
-│       └── retro-lessons.md                     # Positive patterns (auto-injected alongside failures)
-│
-├── implementation-artifacts/
-│   └── (created at runtime by implementer/reviewer/tester)
-│
-└── docs/                                        # Project documentation (if applicable)
-```
-
-## Design Principles
-
-1. **Stateless Dispatcher** - Main Agent stores no durable state in memory
-2. **Delegated Mechanism Selection** - Subagents choose tools/mechanisms for their tasks
-3. **File System as Memory** - Project context externalized to files
-4. **Git as Lineage** - Recoverable history and checkpointing
-5. **Graduated Context Loading** - Kernel + skills + on-demand files
-6. **Self-Discovering Agent Pool** - Directory is registry
-
-## Context Engineering Framework
-
-This template implements seven operational principles derived from context engineering research:
-
-### 1. Context Offloading
-Project state persists in files outside the context window — `planning-artifacts/`, `implementation-artifacts/`, decisions log, and `pipeline-state.md` (recovery cache with 1hr TTL, always derivable from TaskList + git). Git micro-commits and wave-commits act as checkpoints and provide recoverable lineage.
-
-### 2. Context Retrieval
-The Main Agent reads only what it needs: `pipeline-state.md` cache (or derives from TaskList + git if stale), then latest artifacts. Before each dispatch, knowledge injection reads `failure-patterns.md` and `retro-lessons.md` to inject recurring patterns (≥3 occurrences) into agent prompts. Agents load skills on demand via `setting_sources` and `skills` fields. New agents add themselves by dropping a file in `.claude/agents/`.
-
-### 3. Context Reduction
-A <128k token budget keeps the Main Agent compact across entire projects. 4-tier pipeline sizing (Micro/Small/Medium/Large) routes mechanical fixes to haiku and reserves opus for architecture decisions. Up to 30 haiku agents can read files in parallel, keeping the main context lean. Task decomposition caps each unit at 3-5 files. Proactive compaction at 80k summarizes older turns.
-
-### 4. Context Isolation
-Seven specialized agents run in separate contexts with only the tools they need. The blind reviewer operates under information asymmetry — it sees only the git diff, never the spec or intent, preventing anchoring bias. Parallel fan-out dispatches multiple agents on non-overlapping files. Wave invariants guarantee no intra-wave file overlap. All implementation stays on feature branches, never main.
-
-### 5. Context Orchestration
-One universal dispatch pattern governs every project stage: read -> match agent -> classify complexity (4-tier) -> dispatch -> process result -> repeat. Four communication modes handle different scenarios: one-shot, worker-reviewer loop (with parallel blind review for Medium/Large), one-phase-per-turn (user sees each wave), and parallel fan-out. Wave-based execution groups related tasks into atomic commit units.
-
-### 6. Context Governance
-Mechanical enforcement hooks block unauthorized writes ([enforce-paths.sh](.claude/hooks/enforce-paths.sh)), premature implementation ([enforce-sequencing.sh](.claude/hooks/enforce-sequencing.sh)), and warn on missing citations ([warn-dor-dod.sh](.claude/hooks/warn-dor-dod.sh)). Reviewers follow a structured protocol: STATUS codes, numbered issues with severity ratings, and specific fix guidance. The [blind reviewer](.claude/agents/blind-reviewer.md) provides adversarial review from a diff-only perspective. Circuit breaker caps worker-reviewer iterations at three cycles. Secret leak prevention operates in three layers: file exclusion, agent constraints, and automated hooks.
-
-### 7. Context Learning
-The system improves over time through dual knowledge injection. `failure-patterns.md` captures recurring mistakes — patterns reaching ≥3 occurrences are auto-injected as `WARNING:` into future agent prompts. `retro-lessons.md` captures what worked — patterns reaching ≥3 occurrences are injected as `PROVEN:` approaches. Reviewers and testers append new entries after each task. The knowledge base is persistent (survives compaction and session restarts) and version-controlled via git.
-
-Reference links:
-
-- [CLAUDE.md](CLAUDE.md) — Dispatch loop kernel
-- [.claude/agents/](/.claude/agents/) — 7 specialized agents (including [blind-reviewer.md](.claude/agents/blind-reviewer.md))
-- [.claude/hooks/](.claude/hooks/) — 3 enforcement hooks
-- [.claude/skills/pipeline-sizing.md](.claude/skills/pipeline-sizing.md) — 4-tier model
-- [.claude/skills/wave-execution.md](.claude/skills/wave-execution.md) — Wave grouping rules
-- [.claude/skills/git-workflow.md](.claude/skills/git-workflow.md) — Dual commit strategy
-- [.claude/enforcement-config.json](.claude/enforcement-config.json) — Path allowlist
-- [.claude/settings.json](.claude/settings.json) — Hook registration
-- [planning-artifacts/knowledge-base/failure-patterns.md](planning-artifacts/knowledge-base/failure-patterns.md) — Failure learning
-- [planning-artifacts/knowledge-base/retro-lessons.md](planning-artifacts/knowledge-base/retro-lessons.md) — Positive learning
-- [planning-artifacts/pipeline-state.md](planning-artifacts/pipeline-state.md) — Recovery cache
-- [.gitignore](.gitignore) — Secret exclusion
-
-## Idea Organization and Prioritization
-
-The template was designed through a comprehensive brainstorming session using three techniques (First Principles Thinking, Morphological Analysis, Chaos Engineering), producing 50+ design contexts organized into seven context engineering themes.
-
-### Context Offloading: File System as Externalized Memory
-
-How project state is persisted outside the context window - `planning-artifacts/`, `implementation-artifacts/`, decisions log; Git = recoverable lineage
-
-- **Structured status as markdown at known paths** - `CLAUDE.md:91-109` (Folder Conventions)
-- **Git branch per feature for lineage** - `CLAUDE.md:149-154` (Git Workflow section)
-- **Two-phase artifacts: planning -> implementation** - `CLAUDE.md:93-95`
-- **Dual state architecture: Tasks for flow, Files for memory** - `.claude/agents/planner.md:22-24` + `CLAUDE.md:91-109`
-- **Decisions written to files immediately** - `CLAUDE.md:8,140-142` (Principle 3)
-- **Git micro-commits as checkpoints** - `.claude/skills/git-workflow.md:34-41`
-- **Branch isolation - agents never work on main** - `CLAUDE.md:150`
-- **Knowledge base as persistent RAG cache** - `planning-artifacts/knowledge-base/` (version-controlled, survives sessions)
-- **Pipeline state as derivable recovery cache** - `planning-artifacts/pipeline-state.md` (1hr TTL, always reconstructable from TaskList + git log)
-- **Directory CLAUDE.md indexes as semantic maps** - optional convention under [.claude/agents/](.claude/agents/), [.claude/skills/](.claude/skills/), and [planning-artifacts/](planning-artifacts/)
-
-### Context Retrieval: Read Current State Each Cycle
-
-- **Stateless Dispatcher** - `CLAUDE.md:6` (Principle 1: "Stateless")
-- **Minimal Read Window** - `CLAUDE.md:18-20` (latest + next step only)
-- **Task DAG for routing and dependencies** - `.claude/agents/planner.md:1-69`
-- **Graduated context loading via setting_sources + skills** - `.claude/agents/_agent-template.md:6-7`
-- **Self-discovering agent pool** - `CLAUDE.md:27-34`
-- **Local-first RAG priority chain** - `.claude/agents/researcher.md:21-41`
-- **Knowledge injection before dispatch** - `CLAUDE.md:49` (failure-patterns + retro-lessons auto-injected at ≥3 occurrences)
-- **Pipeline state cache-or-derive** - `CLAUDE.md:19` (read cache if fresh, derive from TaskList + git if stale)
-
-### Context Reduction: Token Budget + Compaction + RAG
-
-- **North Star: ship simple app in one 128k window** - `CLAUDE.md:9`
-- **Compaction at 80k with keep-list** - `CLAUDE.md:66-70,134-136`
-- **Proactive compaction every 5 tasks** - `CLAUDE.md:66-70`
-- **CLAUDE.md max 300 lines** - `CLAUDE.md:165-169`
-- **Complexity classification for model selection** - `CLAUDE.md:39-43`
-- **Task decomposition rule: 3-5 files max per task** - `.claude/agents/planner.md:26-30`
-- **Haiku parallel file reading** - `CLAUDE.md:174-180` (up to 30 haiku agents read files in parallel, main context stays lean)
-- **4-tier pipeline sizing** - `.claude/skills/pipeline-sizing.md` (Micro=haiku, Small/Medium=sonnet, Large=opus for architect)
-
-### Context Isolation: Specialized Subagents + Parallel Execution
-
-- **Delegated Mechanism Selection** - `.claude/agents/_agent-template.md:4-8`
-- **Worker-Reviewer autonomous quality loop** - `CLAUDE.md:77-83`
-- **Parallel fan-out pattern** - `CLAUDE.md:85-89`
-- **Dependency analysis prevents parallel file conflicts** - `.claude/agents/planner.md:136`
-- **Information asymmetry via blind reviewer** - `.claude/agents/blind-reviewer.md` (sees only diff, no spec/intent — prevents anchoring)
-- **Wave invariants enforce file isolation** - `.claude/skills/wave-execution.md` (no intra-wave file overlap)
-
-### Context Governance: Quality Gates + Security Controls
-
-- **Hooks as automated quality gates** - `.claude/settings.json` (6 hooks: secret leak, branch protection, enforce-paths, enforce-sequencing, warn-dor-dod)
-- **Circuit breaker: max 3 review cycles** - `CLAUDE.md:83,118-120`
-- **Structured feedback protocol** - `CLAUDE.md:111-116` + `.claude/agents/reviewer.md:23-49`
-- **Blind reviewer for adversarial review** - `.claude/agents/blind-reviewer.md`
-- **MCP fallback chain** - `CLAUDE.md:160`
-- **Secret leak defense layers** - `.gitignore:1-11` + `.claude/settings.json:30-33`
-- **Self-improving knowledge base** - `failure-patterns.md` + `retro-lessons.md` (auto-injected into prompts)
-
-### Context Orchestration: Stateless Dispatcher Loop
-
-- **Main Agent dispatches all stages** - `CLAUDE.md:7`
-- **One universal dispatch pattern** - `CLAUDE.md:12-70`
-- **Two-level split: Main Agent rules vs Subagent rules** - `CLAUDE.md` + `.claude/agents/*.md`
-- **One-phase-per-turn transparency** - `CLAUDE.md:91-92` (Medium/Large: one phase transition per response)
-- **Wave-based execution** - `.claude/skills/wave-execution.md` (group tasks into atomic commit units with 2 invariants)
-- **Four communication modes** - `CLAUDE.md:77-89` (one-shot, worker-reviewer + blind review, one-phase-per-turn, parallel fan-out)
-
-### Context Learning: Self-Improving Knowledge Base
-
-How the system compounds knowledge across sessions — learning from both failures and successes.
-
-- **Failure pattern tracking** - `planning-artifacts/knowledge-base/failure-patterns.md` (reviewers append CRITICAL findings)
-- **Positive lesson capture** - `planning-artifacts/knowledge-base/retro-lessons.md` (reviewers/testers append successful approaches)
-- **Dual injection at dispatch** - `CLAUDE.md:49` (patterns with ≥3 occurrences auto-injected as warnings or proven approaches, max 5 patterns, ≤500 tokens)
-- **SUSPICIOUS_CITATION detection** - `.claude/hooks/warn-dor-dod.sh` (cross-checks cited paths exist on disk)
-- **Persistent across compaction** - failure_patterns and retro_lessons are on the compaction never-compress list
-- **Version-controlled via git** - knowledge base survives session restarts and is recoverable from any commit
-
-## Enforcement & Hardening
-
-Inspired by [Atelier Pipeline](docs/robertsfeir-atelier-pipeline-8a5edab282632443.txt), the template includes mechanical enforcement hooks, adaptive pipeline sizing, adversarial review, and self-improving knowledge injection.
-
-### Enforcement Hooks
-
-Three bash hooks registered in [.claude/settings.json](.claude/settings.json) provide defense-in-depth:
-
-| Hook | Trigger | Behavior |
-|------|---------|----------|
-| `enforce-paths.sh` | PreToolUse (Write/Edit) | Blocks writes outside allowed paths. Normalizes with `realpath -P` to prevent traversal/symlink attacks. |
-| `enforce-sequencing.sh` | PreToolUse (Agent) | Blocks implementer dispatch if no planning artifacts exist. |
-| `warn-dor-dod.sh` | SubagentStop | Advisory warnings when agents don't cite upstream artifacts (DoR) or acceptance criteria (DoD). |
-
-Allowed paths are configured in [.claude/enforcement-config.json](.claude/enforcement-config.json). All hooks work in Git Bash on Windows with graceful degradation if `jq` is unavailable.
-
-### 4-Tier Pipeline Sizing
-
-Tasks are classified into tiers that determine which agents participate and which model to use:
-
-```
-Micro  (≤2 files, mechanical)  → haiku,  implementer only
-Small  (<3 files, bug fix)     → sonnet, implementer → reviewer
-Medium (2-4 steps, feature)    → sonnet, planner → implementer → reviewer + blind reviewer → tester
-Large  (5+ steps, system)      → opus,   full pipeline with architect + parallel review
-```
-
-See [.claude/skills/pipeline-sizing.md](.claude/skills/pipeline-sizing.md) for the full composition table and classification heuristics.
-
-### Blind Reviewer (Adversarial Review)
-
-The [blind-reviewer](.claude/agents/blind-reviewer.md) agent receives **only the git diff** and static project context — no spec, no task description, no intent. This information asymmetry catches issues that spec-aware reviewers anchor past.
-
-- Dispatched in parallel with the standard reviewer for Medium/Large tasks
-- Returns `SKIPPED` for empty diffs, `NEEDS_ATTENTION` for diffs >300 lines
-- Review priority: security > logic > error handling > performance > style
-
-### Wave-Based Execution
-
-For Medium/Large features, related tasks are grouped into **waves** — each wave gets a single commit after all tasks in it pass review. See [.claude/skills/wave-execution.md](.claude/skills/wave-execution.md).
-
-Two invariants are enforced:
-1. No inter-task dependencies within a wave
-2. No overlapping file modifications within a wave
-
-Commit strategy adapts by tier: micro-commits (`[T-{id}]`) for Micro/Small, wave-commits (`[W-{id}]`) for Medium/Large.
-
-### Session Recovery & Knowledge Injection
-
-**Recovery:** `planning-artifacts/pipeline-state.md` acts as a fast recovery cache (1hr TTL). If stale or missing, state is derived from TaskList + git log.
-
-**Knowledge injection:** Before each dispatch, the system reads `failure-patterns.md` and `retro-lessons.md`. Patterns with ≥3 occurrences are auto-injected as warnings (`⚠️ WARNING:`) or proven approaches (`✅ PROVEN:`) into agent prompts. Max 5 patterns, ≤500 tokens.
-
-### Test Suite
-
-```bash
-bash tests/test-runner.sh    # 82 assertions across 4 test suites
-```
-
-Covers: file structure validation, JSON/bash syntax, hook behavior (path enforcement, sequencing, traversal detection), and content validation across all artifacts.
-
-## Dynamic Coding Standards
-
-The template includes a dynamic coding standards loader that resolves language-specific rules at session start.
-
-### How It Works
-1. **Step 0** in the dispatch loop checks if [planning-artifacts/](planning-artifacts/) contains `coding-standards-resolved.md` (generated/optional artifact) and that it is current
-2. The loader skill ([.claude/skills/coding-standards.md](.claude/skills/coding-standards.md)) detects the project stack from manifests and file extensions
-3. Sources are resolved from [coding-standards-sources.yaml](coding-standards-sources.yaml) - a registry mapping languages to rule sources
-4. Rules merge by trust priority: `override` (local) > `verified` (team-vetted) > `community` (external)
-5. Output: full resolved standards + a compressed summary (≤400 tokens) that survives context compaction
-
-### Adding Standards for Your Stack
-- Edit [coding-standards-sources.yaml](coding-standards-sources.yaml) to add language entries
-- Place project-specific overrides in [.claude/skills/overrides/](.claude/skills/overrides/) (`{language}.md`)
-- Cache remote sources under [.claude/](.claude/) at `standards-cache/{language}/` (generated/optional path, fetched by researcher agent or manually)
-
-### Offline-Capable
-The loader never fetches remote URLs directly. Remote sources are cached externally, keeping the system offline-capable after initial setup.
-
-## Architectural Decisions Stress-Tested
-
-The template architecture is designed for resilience against common failure classes:
-
-- Context overflow
-- Infinite review loops
-- Parallel file conflicts
-- Tooling/server failures
-- Session interruption
-- Secret leakage
-- Cost runaway
-
-## Why This Matters
-
-Reliable multi-session delivery requires structured context, not just model capability. This template provides a practical baseline for predictable orchestration and recoverable project execution.
-
-## Resources
-
-- [CLAUDE.md](CLAUDE.md)
-- [.claude/agents/](.claude/agents/) (including [blind-reviewer.md](.claude/agents/blind-reviewer.md))
-- [.claude/skills/](.claude/skills/) (including [pipeline-sizing.md](.claude/skills/pipeline-sizing.md), [wave-execution.md](.claude/skills/wave-execution.md))
-- [.claude/hooks/](.claude/hooks/) (enforce-paths, enforce-sequencing, warn-dor-dod)
-- [.claude/skills/overrides/](.claude/skills/overrides/)
-- [coding-standards-sources.yaml](coding-standards-sources.yaml)
-- [planning-artifacts/](planning-artifacts/) (including [pipeline-state.md](planning-artifacts/pipeline-state.md))
-- [planning-artifacts/knowledge-base/](planning-artifacts/knowledge-base/) (failure-patterns + retro-lessons)
-- [implementation-artifacts/](implementation-artifacts/)
-- [tests/](tests/) (E2E test suite — `bash tests/test-runner.sh`)
-
----
-
-## Appendix: Avoiding "Dark Factory" Anti-Patterns
-
-A **"dark factory"** is a fully autonomous agent pipeline that runs for hours without human checkpoints — producing plausible-looking but wrong results at scale. This template is designed to prevent that.
-
-#### Anti-Pattern 1: "Let it run overnight"
-
-**Problem:** Long-running autonomous execution drifts. After 20+ tasks, context compaction loses nuance, decisions compound errors, and the agent optimizes for completion metrics rather than correctness.
-
-**How the template prevents it:**
-- **One-phase-per-turn** (Medium/Large): User sees each wave before the next starts
-- **Circuit breaker**: 3 NEEDS_CHANGES → BLOCKED, forces human intervention
-- **Token budget**: Compaction at 80k preserves critical decisions but signals when sessions are getting long
-- **Cascade failure check**: >3 tasks BLOCKED simultaneously → full stop
-
-> **Rule of thumb:** If you can't review the output in 5 minutes, the task is too big for one dispatch.
-
-#### Anti-Pattern 2: "Skip the review, I trust the agent"
-
-**Problem:** Without review, implementers introduce subtle regressions, security holes, or scope violations that compound across tasks.
-
-**How the template prevents it:**
-- **Micro is the ONLY tier that skips review** — and it's limited to ≤2 files, mechanical changes
-- **Blind Reviewer** catches what you wouldn't think to look for (no anchoring on spec)
-- **DoR/DoD hook** warns when agents skip citing their sources
-- **Failure pattern injection**: Past mistakes auto-warn future agents
-
-> **Rule of thumb:** If you're tempted to classify as Micro to skip review, it's probably Small.
-
-#### Anti-Pattern 3: "One giant commit at the end"
-
-**Problem:** A 500-line commit with 15 files is unreviewable and unrollbackable. If anything is wrong, you revert everything or debug for hours.
-
-**How the template prevents it:**
-- **Wave commits** group related changes into reviewable units
-- **Wave invariants** prevent conflicting changes within a wave
-- **Git as fault tolerance**: Each wave commit is a checkpoint. Rollback one wave, not the whole feature.
-- **Micro-commits** for Small tasks create even finer recovery points
-
-> **Rule of thumb:** If a wave touches >5 files, it should be split into two waves.
-
-#### Anti-Pattern 4: "The agent knows best"
-
-**Problem:** Over-relying on agent self-assessment. Agents will report "all tests pass" when tests don't exist, or "APPROVED" when they skimmed the diff.
-
-**How the template prevents it:**
-- **Blind Reviewer** can't anchor on the spec — judges code on intrinsic quality
-- **SUSPICIOUS_CITATION** detection catches agents that name-drop file paths without reading them
-- **Tester is independent** — runs actual commands, reports actual output
-- **Evidence format** requires `file:line` references, not vague statements
-
-> **Rule of thumb:** Never trust a review that doesn't include specific file:line references.
-
-#### Anti-Pattern 5: "Reinventing patterns across sessions"
-
-**Problem:** Each new session starts from zero. The agent solves the same problems differently each time, doesn't learn from past failures, and doesn't reuse proven approaches.
-
-**How the template prevents it:**
-- **failure-patterns.md**: Recurring mistakes (3+ occurrences) auto-injected as warnings
-- **retro-lessons.md**: Successful approaches auto-injected as proven patterns
-- **Session recovery**: `pipeline-state.md` + TaskList + git log reconstruct state
-- **Decisions log**: `decisions.md` persists all architectural choices across sessions
-- **Knowledge base**: Persistent RAG cache survives context compaction and session restarts
-
-> **Rule of thumb:** If you solved a tricky problem, make sure the reviewer or tester captures it in retro-lessons. Your future self will thank you.
-
----
-
-### Quick Reference: What Fires When
-
-| Component | Micro | Small | Medium | Large |
-|-----------|:-----:|:-----:|:------:|:-----:|
-| Planner | - | - | Yes | Yes |
-| Architect | - | - | - | Yes (opus) |
-| Implementer | Yes (haiku) | Yes (sonnet) | Yes (sonnet) | Yes (sonnet) |
-| Reviewer | - | Yes | Yes | Yes |
-| Blind Reviewer | - | - | Yes | Yes |
-| Tester | - | - | Yes | Yes |
-| enforce-paths.sh | Yes | Yes | Yes | Yes |
-| enforce-sequencing.sh | Bypass | Yes | Yes | Yes |
-| warn-dor-dod.sh | - | Yes | Yes | Yes |
-| Pattern injection | - | Yes | Yes | Yes |
-| Wave commits | - | - | Yes | Yes |
-| One-phase-per-turn | - | - | Yes | Yes |
-| Session recovery | - | - | Yes | Yes |
-
----
+The checks were written before the fixes. `evidence/` holds the baseline run (before), the final run (after), and
+a live run in which Claude Code sent a real `Write` to `enforce-paths.sh`, the hook blocked it with exit 2, and the
+file was not created.
+
+## Known limits
+
+- `enforce-paths` only sees the `Write`/`Edit` tools. A `Bash` command can still write anywhere. It is a guard against
+  accidental out-of-scope edits, not a sandbox. The allowlist is global, not per agent.
+- `enforce-sequencing` does not know task tiers. A Micro task also needs a plan file before the implementer can be dispatched.
+- The SubagentStop hooks are tested with synthetic payloads (checks H8–H10), not in a live session.
+- The blind reviewer is blind by instruction only. It has Read/Grep/Glob and could open the spec.
+- No secret-scanning hook ships with the template. `.gitignore` excludes common secret files.
+- Token budgets (80k compaction, 128k target) and observation masking were designed for early-2026 context sizes.
+  Their effect is not measured here.
 
 ## License
 

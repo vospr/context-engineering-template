@@ -1,6 +1,11 @@
+---
+name: spec-protocol
+description: "Spec-driven development protocol: spec packet format, assertion rules, controlled vocabulary, spec tiers and governance; its presence turns on SDD mode in the dispatcher. Use when authoring, reviewing or testing against a spec packet or acceptance assertions."
+---
+
 # Spec-Driven Development Protocol
 
-> This file activates SDD mode when present in `.claude/skills/`. Its existence triggers spec-aware dispatch routing.
+> This file activates SDD mode when present at `.claude/skills/spec-protocol/SKILL.md`. Its existence triggers spec-aware dispatch routing.
 
 ## Purpose
 
@@ -230,8 +235,8 @@ If you cannot write a meaningful `negative`, the `positive` is likely too vague.
 
 # VALID — specific file, specific content
 - id: A2
-  positive: ".claude/skills/spec-protocol.md MUST contain a Controlled Vocabulary section"
-  negative: ".claude/skills/spec-protocol.md MUST NOT be missing the Controlled Vocabulary section"
+  positive: ".claude/skills/spec-protocol/SKILL.md MUST contain a Controlled Vocabulary section"
+  negative: ".claude/skills/spec-protocol/SKILL.md MUST NOT be missing the Controlled Vocabulary section"
 
 # VALID — specific behavior with measurable threshold
 - id: A3
@@ -718,7 +723,7 @@ If an implementer reports partial results (e.g., A1 and A2 but not A3), the task
 
 ### Documentation-Only File Scope Guidance
 
-For markdown-first and zero-runtime tasks, some assertions target documentation files (for example `.claude/skills/*.md`) where executable code line evidence is not meaningful. In these cases, evidence MUST still be specific and reproducible.
+For markdown-first and zero-runtime tasks, some assertions target documentation files (for example `.claude/skills/*/SKILL.md`) where executable code line evidence is not meaningful. In these cases, evidence MUST still be specific and reproducible.
 
 Use one of these evidence forms:
 
@@ -728,8 +733,8 @@ Use one of these evidence forms:
 Examples:
 
 ```text
-- A1: PASS - .claude/skills/spec-protocol.md#Controlled Vocabulary (section present)
-- A2: PASS - .claude/skills/spec-protocol.md:776 (contains "token_budget")
+- A1: PASS - .claude/skills/spec-protocol/SKILL.md#Controlled Vocabulary (section present)
+- A2: PASS - .claude/skills/spec-protocol/SKILL.md:776 (contains "token_budget")
 ```
 
 Rules:
@@ -883,7 +888,7 @@ The dispatch loop checks: for each task ID in `tasks`, does the evidence report 
 
 CLAUDE.md Step 2 references the feature tracker:
 
-> "If no tasks AND `.claude/skills/spec-protocol.md` exists AND `planning-artifacts/feature-tracker.json` has unverified features → dispatch planner to spec next feature"
+> "If no tasks AND `.claude/skills/spec-protocol/SKILL.md` exists AND `planning-artifacts/feature-tracker.json` has unverified features → dispatch planner to spec next feature"
 
 This means the dispatch loop reads the tracker to find features where `verified` is false, then dispatches the planner to continue speccing tasks for that feature.
 
@@ -980,7 +985,7 @@ Delete the corrupted file and let the planner recreate entries as new features a
 
 ## 14. Two-Layer Verification Pipeline
 
-Automated verification gates run before dispatching a reviewer, catching 80% of spec violations at 5% of the cost of agent review. This is Slice 3 governance — it layers on top of the Slice 1 evidence reporting (Section 11).
+Automated verification gates run before dispatching a reviewer, so cheap mechanical checks catch spec violations before a more expensive agent review (the hit rate has not been measured). This is Slice 3 governance — it layers on top of the Slice 1 evidence reporting (Section 11).
 
 ### Architecture
 

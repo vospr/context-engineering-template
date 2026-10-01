@@ -1,82 +1,38 @@
 #!/usr/bin/env bash
-# warn-dor-dod.sh — SubagentStop hook
-# Advisory: warns when agents don't prove they read upstream artifacts (DoR)
-# or covered acceptance criteria (DoD).
-# Only checks: implementer, reviewer, tester, blind-reviewer
-# Skips: researcher, haiku lookups
-# Non-blocking: warnings to stderr only, always exits 0
-# Windows/Git Bash compatible.
+# warn-dor-dod.sh — SubagentStop hook (matcher: implementer|reviewer|tester|blind-reviewer)
+# Advisory only, always exit 0. Checks the subagent's final message for:
+#   DoR: citations of upstream artifacts, and that cited paths exist on disk
+#   DoD: acceptance-criteria IDs (AC-n)
+# SubagentStop stdout/stderr only reach the debug log, so warnings are appended to
+# planning-artifacts/hook-warnings.log (the dispatcher reads it; see CLAUDE.md Step 6a).
 
-# P4: SubagentStop hooks may receive data via TOOL_INPUT or TOOL_RESULT.
-# Use both with fallback. Do NOT use set -e — always exit 0.
-set -o pipefail
+. "$(dirname "$0")/lib.sh"
 
-TOOL_IN="${TOOL_INPUT:-}${TOOL_RESULT:-}"
+AGENT="$(jget agent_type)"
+case "$AGENT" in implementer|reviewer|tester|blind-reviewer) ;; *) exit 0 ;; esac
 
-if [ -z "$TOOL_IN" ]; then
-  echo "WARN: warn-dor-dod.sh could not read agent output (no TOOL_INPUT or TOOL_RESULT)" >&2
-  exit 0
+MSG="$(jget last_assistant_message)"
+ROOT="$(project_root)"
+LOG="$ROOT/planning-artifacts/hook-warnings.log"
+warn() { note_to "$LOG" "$(date -u +%FT%TZ) $*"; echo "$*" >&2; }
+
+if [ -z "$MSG" ]; then warn "WARN [$AGENT]: SubagentStop payload had no last_assistant_message — DoR/DoD not checked."; exit 0; fi
+
+count() { printf '%s\n' "$MSG" | grep -cE "$1" 2>/dev/null || true; }
+
+CITES="$(count '(planning-artifacts/|implementation-artifacts/|\.claude/|[A-Za-z0-9_/.-]+\.(md|json|yaml|ts|js|py):[0-9]+)')"
+if [ "${CITES:-0}" -eq 0 ] && [ "$AGENT" != "blind-reviewer" ]; then
+  warn "DoR WARNING [$AGENT]: no upstream artifact citations in the final message."
 fi
-
-# Extract agent type and output
-if command -v jq &>/dev/null; then
-  AGENT_TYPE=$(echo "$TOOL_IN" | jq -r '.subagent_type // empty' 2>/dev/null || true)
-  AGENT_OUTPUT=$(echo "$TOOL_IN" | jq -r '.output // empty' 2>/dev/null || true)
-  MODEL=$(echo "$TOOL_IN" | jq -r '.model // empty' 2>/dev/null || true)
-else
-  echo "WARN: jq not available; DoR/DoD check may be unreliable" >&2
-  AGENT_TYPE=$(echo "$TOOL_IN" | grep -oE '"subagent_type"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"subagent_type"[[:space:]]*:[[:space:]]*"//;s/"$//' || true)
-  AGENT_OUTPUT=$(echo "$TOOL_IN" | head -c 10000 || true)
-  MODEL=$(echo "$TOOL_IN" | grep -oE '"model"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"model"[[:space:]]*:[[:space:]]*"//;s/"$//' || true)
-fi
-
-# Skip for researcher agents and haiku model dispatches
-if [[ "$AGENT_TYPE" == "researcher" ]] || [[ "$MODEL" == *"haiku"* ]]; then
-  exit 0
-fi
-
-# Only check for: implementer, reviewer, tester, blind-reviewer
-case "$AGENT_TYPE" in
-  implementer|reviewer|tester|blind-reviewer) ;;
-  *) exit 0 ;;
-esac
-
-# Guard: if output is empty, warn and skip rather than false-positive
-if [ -z "$AGENT_OUTPUT" ]; then
-  echo "WARN: warn-dor-dod.sh could not extract agent output — skipping DoR/DoD check" >&2
-  exit 0
-fi
-
-# DoR Check: look for file path citations in output
-DOR_CITATIONS=$(echo "$AGENT_OUTPUT" | grep -cE '(planning-artifacts/|implementation-artifacts/|\.claude/|[a-zA-Z0-9_/.-]+\.(md|json|yaml|ts|js|py):[0-9]+)' 2>/dev/null || echo "0")
-
-if [ "$DOR_CITATIONS" -eq 0 ] && [ "$AGENT_TYPE" != "blind-reviewer" ]; then
-  echo "⚠️ DoR WARNING [$AGENT_TYPE]: No upstream artifact citations found in output." >&2
-fi
-
-# Cross-check: verify cited paths exist on disk
-PROJECT_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-CITED_PATHS=$(echo "$AGENT_OUTPUT" | grep -oE '(planning-artifacts|implementation-artifacts|\.claude)/[a-zA-Z0-9_/.-]+' 2>/dev/null | sort -u || true)
 
 while IFS= read -r cited; do
   [ -z "$cited" ] && continue
-  # Skip template placeholders (paths containing { or })
-  if echo "$cited" | grep -q '[{}]'; then
-    continue
-  fi
-  # Windows compat: normalize backslashes to forward slashes
-  cited=$(echo "$cited" | sed 's|\\|/|g')
-  if [ ! -f "$PROJECT_ROOT/$cited" ] && [ ! -d "$PROJECT_ROOT/$cited" ]; then
-    echo "⚠️ SUSPICIOUS_CITATION [$AGENT_TYPE]: Cited path '$cited' does not exist on disk." >&2
-  fi
-done <<< "$CITED_PATHS"
+  case "$cited" in *'{'*|*'}'*) continue ;; esac
+  [ -e "$ROOT/$cited" ] || warn "SUSPICIOUS_CITATION [$AGENT]: cited path '$cited' does not exist on disk."
+done < <(printf '%s\n' "$MSG" | grep -oE '(planning-artifacts|implementation-artifacts|\.claude)/[A-Za-z0-9_/.-]+' | sed 's/[.]$//' | sort -u)
 
-# DoD Check: look for AC ID mentions (AC-1, AC-2, etc.)
-DOD_MENTIONS=$(echo "$AGENT_OUTPUT" | grep -cE 'AC-[0-9]+' 2>/dev/null || echo "0")
-
-if [ "$DOD_MENTIONS" -eq 0 ] && [ "$AGENT_TYPE" != "blind-reviewer" ]; then
-  echo "⚠️ DoD WARNING [$AGENT_TYPE]: No acceptance criteria IDs (AC-*) found in output." >&2
+ACS="$(count 'AC-[0-9]+')"
+if [ "${ACS:-0}" -eq 0 ] && [ "$AGENT" != "blind-reviewer" ]; then
+  warn "DoD WARNING [$AGENT]: no acceptance-criteria IDs (AC-n) in the final message."
 fi
-
-# Always exit 0 — advisory only
 exit 0

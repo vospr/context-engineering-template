@@ -40,4 +40,4 @@ This file starts as a template and is appended over time when reviewers report r
 
 ## See Also
 - planning-artifacts/knowledge-base/rag-sources.md
-- .claude/skills/spec-protocol.md
+- .claude/skills/spec-protocol/SKILL.md

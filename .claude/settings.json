@@ -3,19 +3,29 @@
     "PreToolUse": [
       {
         "matcher": "Write|Edit",
-        "command": "bash .claude/hooks/enforce-paths.sh"
+        "hooks": [
+          { "type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/enforce-paths.sh\"" }
+        ]
       },
       {
-        "matcher": "Agent",
-        "command": "bash .claude/hooks/enforce-sequencing.sh"
+        "matcher": "Agent|Task",
+        "hooks": [
+          { "type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/enforce-sequencing.sh\"" }
+        ]
       }
     ],
     "SubagentStop": [
       {
-        "command": "bash .claude/hooks/warn-dor-dod.sh"
+        "matcher": "implementer|reviewer|tester|blind-reviewer",
+        "hooks": [
+          { "type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/warn-dor-dod.sh\"" }
+        ]
       },
       {
-        "command": "bash .claude/hooks/extract-knowledge.sh"
+        "matcher": "implementer|reviewer|tester|blind-reviewer|architect|planner",
+        "hooks": [
+          { "type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/extract-knowledge.sh\"" }
+        ]
       }
     ]
   }

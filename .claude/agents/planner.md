@@ -83,7 +83,7 @@ Default to **Linear** unless the goal contains ambiguity signals (multiple valid
 
 Spec authoring is a permanent responsibility of the planner agent. The `spec-protocol.md` skill is available as reference material but is not required to be loaded per dispatch — the planner's spec authoring workflow is self-contained.
 
-When SDD mode is active (`.claude/skills/spec-protocol.md` exists), you are the **sole spec author**. All spec packets, spec overviews, and feature tracker entries originate from you.
+When SDD mode is active (`.claude/skills/spec-protocol/SKILL.md` exists), you are the **sole spec author**. All spec packets, spec overviews, and feature tracker entries originate from you.
 
 ### Spec Authoring Workflow
 

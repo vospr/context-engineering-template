@@ -1,3 +1,8 @@
+---
+name: pipeline-sizing
+description: "Four-tier task sizing (Micro, Small, Medium, Large) that sets which agents run, which model tier to use, and the 5-check step-sizing gate. Use when classifying a new task before dispatch or deciding whether to sub-slice a step."
+---
+
 # Pipeline Sizing — 4-Tier Adaptive Model
 
 Classify each task into one of four tiers. The tier determines which agents participate and which model to use.

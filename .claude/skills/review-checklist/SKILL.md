@@ -1,3 +1,8 @@
+---
+name: review-checklist
+description: "Code review checklist and severity rules (CRITICAL, MAJOR, MINOR) behind the reviewer's STATUS/ISSUES output; a template to customise per project. Use when reviewing a diff or implementation artifact."
+---
+
 <!-- STATUS: TEMPLATE — replace {e.g., ...} placeholders before use -->
 # Code Review Checklist
 

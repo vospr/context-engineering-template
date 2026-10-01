@@ -1,3 +1,8 @@
+---
+name: architecture-principles
+description: "Project architecture constraints (system type, layering, boundaries, data and API conventions); a template to customise per project. Use when the architect designs components or the reviewer checks a change against the intended architecture."
+---
+
 ## STATUS: TEMPLATE — Customize before use
 <!-- Replace all {e.g., ...} placeholders with your project's actual values -->
 # Architecture Principles

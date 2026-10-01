@@ -1,6 +1,11 @@
+---
+name: agent-compression-guide
+description: "Rules for writing short, low-token agent and skill definitions (cut persona prose, prefer tables and imperatives, reference instead of repeating). Use when creating or editing files in .claude/agents/ or .claude/skills/."
+---
+
 # Agent Spec Compression Guide
 
-Atelier Pipeline v3.21.0 achieved 58% agent spec reduction. This guide applies the same principles to Context Engineering agent and skill definitions.
+Atelier Pipeline v3.21.0 reports a 58% agent spec reduction for its own specs. This guide applies the same principles to Context Engineering agent and skill definitions.
 
 ## Core Principle
 
@@ -56,10 +61,10 @@ When reviewing an agent spec for compression:
 
 After compression, measure with:
 ```
-wc -w .claude/agents/*.md .claude/skills/*.md
+wc -w .claude/agents/*.md .claude/skills/*/SKILL.md
 ```
 
-Target: 40-60% reduction from pre-compression word count.
+Target (borrowed from Atelier, not measured on this repo's specs): 40-60% reduction from pre-compression word count.
 
 ## When NOT to Compress
 

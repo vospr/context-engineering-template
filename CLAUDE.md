@@ -23,7 +23,7 @@ You are the Main Agent — a stateless dispatcher that orchestrates software pro
 ### 2. Select Next Task
 - Pick lowest-ID unblocked, unclaimed task
 - If no tasks: ask user for next goal
-- If no tasks AND `.claude/skills/spec-protocol.md` exists AND `planning-artifacts/feature-tracker.json` has unverified features → dispatch planner to spec next feature
+- If no tasks AND `.claude/skills/spec-protocol/SKILL.md` exists AND `planning-artifacts/feature-tracker.json` has unverified features → dispatch planner to spec next feature
 
 ### 3. Match Agent
 - Compare task against agent descriptions in .claude/agents/:
@@ -38,15 +38,15 @@ You are the Main Agent — a stateless dispatcher that orchestrates software pro
   - If top candidate scores ≥ 4/6 → dispatch
   - If top candidate scores < 4/6 → ask user to clarify, or dispatch planner to classify task first
 
-### 4. Classify Complexity & Select Model (see `.claude/skills/pipeline-sizing.md`)
+### 4. Classify Complexity & Select Model (see `.claude/skills/pipeline-sizing/SKILL.md`)
 - **Micro** (≤2 files, mechanical) → haiku, implementer only, skip review
 - **Small** (<3 files, bug fix) → sonnet, implementer → reviewer
 - **Medium** (2-4 steps, feature) → sonnet, planner → implementer → reviewer + blind-reviewer (parallel) → tester
 - **Large** (5+ steps, new system) → opus for architect, full pipeline + blind reviewer
-- If SDD mode (`.claude/skills/spec-protocol.md` exists): also classify spec_tier per spec-protocol.md Section 6
+- If SDD mode (`.claude/skills/spec-protocol/SKILL.md` exists): also classify spec_tier per spec-protocol.md Section 6
 
 ### 4a. Step Sizing Gate (Medium/Large only)
-Before dispatching implementer, validate each step passes all 5 checks (see `.claude/skills/pipeline-sizing.md`):
+Before dispatching implementer, validate each step passes all 5 checks (see `.claude/skills/pipeline-sizing/SKILL.md`):
 - Demoable? Context-bounded? Independently verifiable? Revert-cheap? Already small?
 - If any check fails → sub-slice the step before dispatch
 - If sub-slicing produces 5+ sub-steps → re-classify task as Large before dispatch (triggers architect + opus)
@@ -84,20 +84,21 @@ Dispatch the real agent with scout summaries, NOT raw file contents. Saves 15-20
 
 ### 6a. Knowledge Extraction (Automatic)
 After each implementer/reviewer/tester/architect/planner dispatch completes:
-- The `extract-knowledge.sh` SubagentStop hook analyzes agent output for knowledge signals
-- If hook output contains `EXTRACT_KNOWLEDGE_SIGNAL`: dispatch a haiku agent to read the completed agent's artifact file and extract decisions, patterns, lessons, failures
+- The `extract-knowledge.sh` SubagentStop hook analyzes agent output for knowledge signals and appends `EXTRACT_KNOWLEDGE_SIGNAL` lines to `planning-artifacts/.hook-signals` (SubagentStop output never reaches you, so hooks write files)
+- If `.hook-signals` has a new line for this agent: dispatch a haiku agent to read the completed agent's artifact file and extract decisions, patterns, lessons, failures
 - Haiku agent appends extracted entries to `planning-artifacts/knowledge-base/failure-patterns.md` or `retro-lessons.md` using the entry template format
-- If no `EXTRACT_KNOWLEDGE_SIGNAL` in hook output: skip extraction (output had insufficient knowledge signals)
+- If no new signal: skip extraction (output had insufficient knowledge signals)
+- Also read new lines in `planning-artifacts/hook-warnings.log` (DoR/DoD and SUSPICIOUS_CITATION warnings from `warn-dor-dod.sh`) and treat them as reviewer input
 
 ### 6b. Observation Masking (Before Next Dispatch)
-After processing an agent's result, apply masking rules from `.claude/skills/observation-masking.md` to all tool outputs older than 3 turns that match the "Always Mask" categories:
+After processing an agent's result, apply masking rules from `.claude/skills/observation-masking/SKILL.md` to all tool outputs older than 3 turns that match the "Always Mask" categories:
 - Replace stale tool outputs with `[masked: {tool} {target}, {size} lines, turn {N}]`
 - **Never mask**: active blockers, most recent read per file, agent reasoning, pipeline-state.md
 - **Always mask**: superseded file reads, completed phase outputs, verbose bash logs after verdict
 - Goal: stay under 60k tokens proactively, avoid reactive compaction at 80k
 
 ### 6c. Wave Grouping (Medium/Large only)
-For Medium/Large pipelines, planner groups tasks into waves per `.claude/skills/wave-execution.md`
+For Medium/Large pipelines, planner groups tasks into waves per `.claude/skills/wave-execution/SKILL.md`
 
 ### 7. Token Check (Every 5 Tasks)
 - If context > 80k tokens: compact oldest 20 turns using structured YAML schema, keep last 3 raw
@@ -187,7 +188,7 @@ Escalation rule: if same matrix cell fires 3+ times across tasks → WARN in pip
 ### Secret Leak Prevention
 1. .gitignore blocks .env*, credentials.*, *.key, secrets/
 2. Agent instructions prohibit committing secrets
-3. PreToolUse hook scans git commits for secret patterns
+3. No secret-scanning hook ships with the template; add one (or a pre-commit tool) per project
 
 ## Token Budget
 

@@ -1,3 +1,8 @@
+---
+name: git-workflow
+description: "Branch, commit-message and merge conventions for the pipeline (feature branches, [T-id] micro-commits, merge only after review). Use when the implementer creates branches, commits, or prepares a merge."
+---
+
 # Git Workflow Standards
 
 ## Branch Strategy

@@ -2,7 +2,6 @@
   "allowed_paths": [
     "planning-artifacts/",
     "implementation-artifacts/",
-    "_bmad-output/",
     ".claude/agents/",
     ".claude/skills/",
     ".claude/hooks/",
@@ -11,5 +10,5 @@
     ".claude/settings.json"
   ],
   "project_source_dirs": [],
-  "notes": "Global allowlist per ADR-001. Per-agent scoping deferred until Claude Code exposes $AGENT_NAME to hooks."
+  "notes": "Global allowlist per ADR-001, enforced by .claude/hooks/enforce-paths.sh (Write/Edit only). Per-agent scoping is not implemented. Add your source directories to project_source_dirs."
 }

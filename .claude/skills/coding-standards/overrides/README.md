@@ -1,7 +1,7 @@
 # Local Standards Overrides
 
 Files in this directory provide project-specific coding standards that
-override remote and community sources.
+override the vendored community sources.
 
 ## How It Works
 - Reference these files from `coding-standards-sources.yaml` with `trust: override`

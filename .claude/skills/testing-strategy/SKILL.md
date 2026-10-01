@@ -1,3 +1,8 @@
+---
+name: testing-strategy
+description: "Test framework, layout, coverage and naming conventions for the project; a template to customise per project. Use when writing, running or reporting on tests."
+---
+
 ## STATUS: TEMPLATE — Customize before use
 <!-- Replace all {e.g., ...} placeholders with your project's actual values -->
 # Testing Strategy

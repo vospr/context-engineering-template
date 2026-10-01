@@ -1,6 +1,11 @@
+---
+name: observation-masking
+description: "Rules for replacing stale tool outputs in the dispatcher's context with one-line placeholders while keeping blockers and latest reads. Use when the main agent finishes processing a subagent result or the conversation is getting long."
+---
+
 # Observation Masking — Proactive Context Hygiene
 
-Inspired by Atelier Pipeline ADR-0011. Reduces context usage by 40-60% through structured replacement of superseded tool outputs.
+Inspired by Atelier Pipeline ADR-0011. Aims to reduce context usage through structured replacement of superseded tool outputs. The savings have not been measured in this repo.
 
 ## When to Mask
 
@@ -57,7 +62,7 @@ Priority order:
 
 ## Token Savings Estimate (Illustrative)
 
-These figures are estimates based on typical session verbosity. Actual savings vary.
+These figures are illustrative guesses, not measured in this repo. Actual savings vary.
 
 | Session Phase | Without Masking (est.) | With Masking (est.) | Savings (est.) |
 |--------------|----------------------|--------------------|--------------------|
@@ -65,4 +70,4 @@ These figures are estimates based on typical session verbosity. Actual savings v
 | After 5 tasks | ~70k tokens | ~30k tokens | ~57% |
 | After 8 tasks | ~110k (compaction triggered) | ~48k tokens | ~56% |
 
-Expected result: 2-3x more tasks per session before hitting context limits.
+Hoped-for result: more tasks per session before hitting context limits (not measured).

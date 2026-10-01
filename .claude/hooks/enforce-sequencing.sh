@@ -1,42 +1,22 @@
 #!/usr/bin/env bash
-# enforce-sequencing.sh — PreToolUse hook for Agent tool
-# Blocks implementer dispatch if no tasks exist (prevents premature implementation)
-# Bypass: task-file existence only. No prompt scanning, no env-var bypass.
-# (per Red Team hardening H3 + code review D1)
-# Windows/Git Bash compatible.
+# enforce-sequencing.sh — PreToolUse hook (matcher: Agent)
+# Blocks dispatching the implementer while no plan file exists under planning-artifacts/.
+# Contract: payload on stdin; exit 2 = block (stderr is shown to Claude).
+# Bypass: the existence of a planning-artifacts/*plan-*.md file. No prompt scanning, no env-var bypass.
 
-set -eo pipefail
+. "$(dirname "$0")/lib.sh"
 
-# Only check Agent tool invocations
-if [ "${TOOL_NAME:-}" != "Agent" ]; then
-  exit 0
+TOOL="$(jget tool_name)"
+case "$TOOL" in Agent|Task|"") ;; *) exit 0 ;; esac
+
+[ "$(jget subagent_type)" = "implementer" ] || exit 0
+
+ROOT="$(project_root)"
+if [ -z "$(find "$ROOT/planning-artifacts" -name '*plan-*.md' 2>/dev/null | head -1)" ]; then
+  {
+    echo "BLOCK: cannot dispatch the implementer — no plan file (planning-artifacts/*plan-*.md) exists."
+    echo "Run the planner first. The hook does not know task tiers: a Micro task also needs a (one-line) plan file."
+  } >&2
+  exit 2
 fi
-
-# Extract subagent_type from TOOL_INPUT
-TOOL_IN="${TOOL_INPUT:-}"
-if [ -z "$TOOL_IN" ]; then
-  exit 0
-fi
-
-if command -v jq &>/dev/null; then
-  AGENT_TYPE=$(echo "$TOOL_IN" | jq -r '.subagent_type // empty')
-else
-  AGENT_TYPE=$(echo "$TOOL_IN" | grep -oE '"subagent_type"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"subagent_type"[[:space:]]*:[[:space:]]*"//;s/"$//' || true)
-fi
-
-# Only gate implementer dispatches
-if [ -z "$AGENT_TYPE" ] || [ "$AGENT_TYPE" != "implementer" ]; then
-  exit 0
-fi
-
-# Check if planning artifacts with task decomposition exist
-PROJECT_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-TASK_FILES=$(find "$PROJECT_ROOT/planning-artifacts" -name "*plan-*.md" 2>/dev/null | head -1)
-
-if [ -z "$TASK_FILES" ]; then
-  echo "BLOCK: Cannot dispatch implementer — no planning artifacts found."
-  echo "Create tasks via planner agent first, or classify as Micro tier."
-  exit 1
-fi
-
 exit 0
