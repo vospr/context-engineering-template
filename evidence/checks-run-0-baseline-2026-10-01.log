@@ -1,0 +1,45 @@
+FAIL  H1     settings.json: matcher groups hold nested hooks[{type:command,command}]; no bare command
+FAIL  H2     no hook reads the obsolete TOOL_INPUT/TOOL_NAME/TOOL_RESULT env vars
+        -> .claude/hooks/enforce-paths.sh:9:if [ "${TOOL_NAME:-}" != "Write" ] && [ "${TOOL_NAME:-}" != "Edit" ]; then .claude/hooks/enforce-paths.sh:15:# P2: Use ${TOOL_INPUT:-} to avoid unset variable crash .claude/hooks/enforce-paths.sh:16:TOOL_IN="${TOOL_INPUT:-}" 
+FAIL  H3     enforce-paths: Write outside allowlist -> exit 2 with BLOCK on stderr
+FAIL  H4     enforce-paths: ../ traversal out of an allowed dir -> exit 2
+PASS  H5     enforce-paths: allowed paths, CLAUDE.md and non-write tools -> exit 0
+FAIL  H6     enforce-sequencing: implementer with no plan -> exit 2 with BLOCK
+PASS  H7     enforce-sequencing: researcher allowed; implementer allowed once a plan file exists
+FAIL  H8     warn-dor-dod: reads last_assistant_message from stdin; logs DoR+DoD warnings; exit 0
+FAIL  H9     warn-dor-dod: no warning on cited+AC output; SUSPICIOUS_CITATION for a missing path
+FAIL  H10    extract-knowledge: signal written to planning-artifacts/.hook-signals (a file, since SubagentStop stdout is debug-log only); researcher skipped
+        -> grep: /var/folders/qq/grv8gkwd4tg8l7137zpbplj00000gn/T/tmp.067Xzu1G6w/planning-artifacts/.hook-signals: No such file or directory
+PASS  H11    all hooks exit 0 on empty stdin (never block on a malformed call)
+FAIL  H12    SubagentStop groups use a per-agent matcher (supported by current Claude Code)
+FAIL  H13    recorded live run: real 'claude -p' session was blocked by enforce-paths and the file was not created (evidence/hook-block-live-*.log)
+PASS  E1     enforcement-config.json is valid JSON
+FAIL  E2     enforcement-config.json no longer allowlists _bmad-output/
+FAIL  S1     10 skills are .claude/skills/<name>/SKILL.md with matching name + a 'Use when' description (<=1536 chars)
+        -> no SKILL.md in overrides flat .md files remain in .claude/skills/ expected 10 skill dirs
+FAIL  S2     every skill named in an agent's skills: list resolves to .claude/skills/<name>/SKILL.md
+        -> .claude/agents/architect.md -> skill 'architecture-principles' does not resolve .claude/agents/implementer.md -> skill 'coding-standards' does not resolve .claude/agents/implementer.md -> skill 'git-workflow' does not resolve 
+PASS  S3     agents still declare skills (guards against S2 passing vacuously)
+FAIL  S4     unmeasured percentages in skills are removed or labelled 'not measured'
+        -> grep: .claude/skills/spec-protocol/SKILL.md: No such file or directory grep: .claude/skills/observation-masking/SKILL.md: No such file or directory observation-masking: 40-60% not labelled as unmeasured
+FAIL  V1     coding-standards-sources.yaml has no remote url: entries
+        -> 11:    - url: "https://raw.githubusercontent.com/PatrickJS/awesome-cursorrules/main/rules/typescript-nodejs-nextjs-app-cursorrules-prompt-file/.cursorrules" 16:    - url: "https://raw.githubusercontent.com/PatrickJS/awesome-cursorrules/main/rules/python-fastapi-best-practices-cursorrules-prompt-file/.cursorrules" 24:    - url: "https://raw.githubusercontent.com/PatrickJS/awesome-cursorrules/main/rules/go-servemux-rest-api-cursorrules-prompt-file/.cursorrules"
+FAIL  V2     vendored rules: MANIFEST pins a 40-hex upstream commit + CC0 licence; every file's sha256 matches
+        -> jq: error: Could not open file .claude/skills/coding-standards/vendored/MANIFEST.json: No such file or directory
+FAIL  V3     every local: path in coding-standards-sources.yaml exists (except the project-supplied stories/ one)
+        -> missing: .claude/skills/overrides/typescript.md missing: .claude/skills/overrides/python.md
+FAIL  V4     coding-standards skill no longer depends on an externally populated standards-cache
+FAIL  B1     report, comparison.md and SCENARIOD estimate restored byte-identical to the pre-deletion commit (48f565e^)
+        -> SCENARIOA-vs-SCENARIOB-REPORT-2026-02-13.md differs from 48f565e^:tests/SCENARIOA-vs-SCENARIOB-REPORT-2026-02-13.md
+FAIL  B2     benchmarks README states the real numbers AND their limits (613,670 logged, source file not preserved, B unmeasured, C/D are estimates)
+FAIL  R1     README: no 'fixes that', no '60-80%', no 'why it works', no GitHub Actions, no _bmad-output, no dead docs/ link
+        -> 592:Inspired by [Atelier Pipeline](docs/robertsfeir-atelier-pipeline-8a5edab282632443.txt), the template includes mechanical enforcement hooks, adaptive pipeline sizing, adversarial review, and self-improving knowledge injection.
+FAIL  R2     README: every relative link resolves to a tracked path
+        -> dead link: docs/robertsfeir-atelier-pipeline-8a5edab282632443.txt dead link: tests/
+FAIL  R3     README: 'Status and lineage' section with dates, Atelier link, and the files adapted from it
+FAIL  R4     README: removed claims the repo can't back (6 hooks, 82 assertions, tests/test-runner.sh)
+        -> 562:- **Hooks as automated quality gates** - `.claude/settings.json` (6 hooks: secret leak, branch protection, enforce-paths, enforce-sequencing, warn-dor-dod) 646:bash tests/test-runner.sh    # 82 assertions across 4 test suites 697:- [tests/](tests/) (E2E test suite — `bash tests/test-runner.sh`)
+FAIL  R5     README points to checks/run.sh and evidence/
+FAIL  R6     README states plainly that the repo is a dated build, not an actively maintained tool
+
+5 passed, 26 failed

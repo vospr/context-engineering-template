@@ -39,6 +39,7 @@ Thumbs.db
 
 # Logs
 *.log
+!evidence/*.log
 logs/
 
 # Test Coverage
@@ -55,6 +56,7 @@ temp/
 
 # Claude Code session files (regenerated each session)
 planning-artifacts/mcp-health.md
+planning-artifacts/.hook-signals
 
 # Runtime research artifacts (regenerated per project, not template files)
 # NOTE: planning-artifacts/knowledge-base/ IS tracked — it's the persistent RAG cache
