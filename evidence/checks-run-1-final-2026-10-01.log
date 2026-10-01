@@ -1,0 +1,33 @@
+PASS  H1     settings.json: matcher groups hold nested hooks[{type:command,command}]; no bare command
+PASS  H2     no hook reads the obsolete TOOL_INPUT/TOOL_NAME/TOOL_RESULT env vars
+PASS  H3     enforce-paths: Write outside allowlist -> exit 2 with BLOCK on stderr
+PASS  H4     enforce-paths: ../ traversal out of an allowed dir -> exit 2
+PASS  H5     enforce-paths: allowed paths, CLAUDE.md and non-write tools -> exit 0
+PASS  H6     enforce-sequencing: implementer with no plan -> exit 2 with BLOCK
+PASS  H7     enforce-sequencing: researcher allowed; implementer allowed once a plan file exists
+PASS  H8     warn-dor-dod: reads last_assistant_message from stdin; logs DoR+DoD warnings; exit 0
+PASS  H9     warn-dor-dod: no warning on cited+AC output; SUSPICIOUS_CITATION for a missing path
+PASS  H10    extract-knowledge: signal written to planning-artifacts/.hook-signals (a file, since SubagentStop stdout is debug-log only); researcher skipped
+PASS  H11    all hooks exit 0 on empty stdin (never block on a malformed call)
+PASS  H12    SubagentStop groups use a per-agent matcher (supported by current Claude Code)
+PASS  H13    recorded live run: real 'claude -p' session was blocked by enforce-paths and the file was not created (evidence/hook-block-live-*.log)
+PASS  E1     enforcement-config.json is valid JSON
+PASS  E2     enforcement-config.json no longer allowlists _bmad-output/
+PASS  S1     10 skills are .claude/skills/<name>/SKILL.md with matching name + a 'Use when' description (<=1536 chars)
+PASS  S2     every skill named in an agent's skills: list resolves to .claude/skills/<name>/SKILL.md
+PASS  S3     agents still declare skills (guards against S2 passing vacuously)
+PASS  S4     unmeasured percentages in skills are removed or labelled 'not measured'
+PASS  V1     coding-standards-sources.yaml has no remote url: entries
+PASS  V2     vendored rules: MANIFEST pins a 40-hex upstream commit + CC0 licence; every file's sha256 matches
+PASS  V3     every local: path in coding-standards-sources.yaml exists (except the project-supplied stories/ one)
+PASS  V4     coding-standards skill no longer depends on an externally populated standards-cache
+PASS  B1     report, comparison.md and SCENARIOD estimate restored byte-identical to the pre-deletion commit (48f565e^)
+PASS  B2     benchmarks README states the real numbers AND their limits (613,670 logged, source file not preserved, B unmeasured, C/D are estimates)
+PASS  R1     README: no 'fixes that', no '60-80%', no 'why it works', no GitHub Actions, no _bmad-output, no dead docs/ link
+PASS  R2     README: every relative link resolves to a tracked path
+PASS  R3     README: 'Status and lineage' section with dates, Atelier link, and the files adapted from it
+PASS  R4     README: removed claims the repo can't back (6 hooks, 82 assertions, tests/test-runner.sh)
+PASS  R5     README points to checks/run.sh and evidence/
+PASS  R6     README states plainly that the repo is a dated build, not an actively maintained tool
+
+31 passed, 0 failed
